@@ -233,8 +233,8 @@ contract BancorFormula is Power {
         uint256 _supply,
         uint256 _connectorBalance,
         uint32 _connectorWeight,
-        uint256 _depositAmount) internal view returns (uint256)
-    {
+        uint256 _depositAmount
+    ) internal view returns (uint256) {
         // validate input
         require(_supply > 0 && _connectorBalance > 0 && _connectorWeight > 0 && _connectorWeight <= MAX_WEIGHT);
         // special case for 0 deposit amount
@@ -254,6 +254,32 @@ contract BancorFormula is Power {
         uint256 newTokenSupply = (_supply * result) >> precision;
         return newTokenSupply - _supply;
     }
+
+    function calculatePurchaseBalance(
+        uint256 _supply,
+        uint256 _connectorBalance,
+        uint32 _connectorWeight,
+        uint256 _tokenAmount
+    ) internal view returns (uint256) {
+        // validate input
+        require(_supply > 0 && _connectorBalance > 0 && _connectorWeight > 0 && _connectorWeight <= MAX_WEIGHT);
+        // special case for 0 deposit amount
+        if (_tokenAmount == 0) {
+            return 0;
+        }
+        // special case if the weight = 100%
+        if (_connectorWeight == MAX_WEIGHT) {
+            return (_connectorBalance * _tokenAmount) / _supply;
+        }
+        uint256 result;
+        uint8 precision;
+        uint256 base = _supply + _tokenAmount;
+        (result, precision) = power(base, _supply, MAX_WEIGHT, _connectorWeight);
+        uint256 balanceRequired = (_connectorBalance * (result - (1 << precision))) >> precision;
+
+        return balanceRequired;
+    }
+
     /**
     * @dev given a token supply, connector balance, weight and a sell amount (in the main token),
    * calculates the return for a given conversion (in the connector token)
@@ -272,8 +298,8 @@ contract BancorFormula is Power {
         uint256 _supply,
         uint256 _connectorBalance,
         uint32 _connectorWeight,
-        uint256 _sellAmount) internal view returns (uint256)
-    {
+        uint256 _sellAmount
+    ) internal view returns (uint256) {
         // validate input
         require(_supply > 0 && _connectorBalance > 0 && _connectorWeight > 0 && _connectorWeight <= MAX_WEIGHT && _sellAmount <= _supply);
         // special case for 0 sell amount

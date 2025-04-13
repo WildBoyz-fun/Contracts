@@ -4,7 +4,7 @@ import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers"
 
 describe("BondingCurve", function () {
     const scale = 18;
-    const epsilon = hre.ethers.parseEther("0.000000000000001")
+    const epsilon = 0.000000000000001
 
 
     async function deployBondingCurve() {
@@ -62,6 +62,24 @@ describe("BondingCurve", function () {
         tokenSupply -= tokenAmount;
         depositBalance -= ethAmount;
 
-        expect(depositBalance).lessThan(epsilon)
+        expect(parseFloat(hre.ethers.formatEther(depositBalance))).lessThan(epsilon)
+    })
+
+    it("should be ensured that the number of tokens purchased does not exceed the maximum limit", async function () {
+        const { bondingCurve } = await loadFixture(deployBondingCurve);
+
+        let tokenSupply = hre.ethers.parseEther("0");
+        let depositBalance = hre.ethers.parseEther("0");
+
+        const ethDepositAmount = hre.ethers.parseEther("1");
+        console.log(`deposit amount: ${parseFloat(hre.ethers.formatEther(ethDepositAmount))}`);
+
+        const tokenAmount = await bondingCurve.calculatePurchaseReturn(tokenSupply, depositBalance, ethDepositAmount);
+        console.log(`token amount: ${hre.ethers.formatUnits(tokenAmount, scale)}`);
+
+        const ethAmount = await bondingCurve.calculatePurchaseBalance(tokenSupply, depositBalance, tokenAmount);
+        console.log(`eth amount: ${parseFloat(hre.ethers.formatEther(ethAmount))}`)
+
+        expect(Math.abs(parseFloat(hre.ethers.formatEther(ethDepositAmount - ethAmount)))).lessThan(epsilon)
     })
 });

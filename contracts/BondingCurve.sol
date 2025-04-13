@@ -6,14 +6,18 @@ import "./libs/BancorFormula.sol";
 
 contract BondingCurve is BancorFormula {
 
-    uint256 private _tokenSupplyOffset = 3_690_287_251_496_824_536_722_139_764;
-    uint256 private _depositBalanceOffset = 1**18;
+    uint256 private _tokenSupplyOffset = 1197424701255807981000275879;
+    uint256 private _depositBalanceOffset = 60310000000000000;
     uint32 private _reserveRatio = 100000; // 10%
 
     constructor() {
     }
 
-    function calculatePurchaseReturn(uint256 tokenSupply, uint256 depositBalance, uint256 deposit) public view returns (uint256) {
+    function calculatePurchaseReturn(
+        uint256 tokenSupply,
+        uint256 depositBalance,
+        uint256 deposit
+    ) public view returns (uint256) {
         return calculatePurchaseReturn(
             offsetTokenSupply(tokenSupply),
             offsetDepositBalance(depositBalance),
@@ -22,7 +26,24 @@ contract BondingCurve is BancorFormula {
         );
     }
 
-    function calculateSaleReturn(uint256 tokenSupply, uint256 depositBalance, uint256 tokenAmount) public view returns (uint256) {
+    function calculatePurchaseBalance(
+        uint256 tokenSupply,
+        uint256 depositBalance,
+        uint256 tokenAmountToPurchase
+    ) public view returns (uint256) {
+        return calculatePurchaseBalance(
+            offsetTokenSupply(tokenSupply),
+            offsetDepositBalance(depositBalance),
+            _reserveRatio,
+            tokenAmountToPurchase
+        );
+    }
+
+    function calculateSaleReturn(
+        uint256 tokenSupply,
+        uint256 depositBalance,
+        uint256 tokenAmount
+    ) public view returns (uint256) {
         return calculateSaleReturn(
             offsetTokenSupply(tokenSupply),
             offsetDepositBalance(depositBalance),
