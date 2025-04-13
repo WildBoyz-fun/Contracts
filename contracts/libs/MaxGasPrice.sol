@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract MaxGasPrice is Ownable {
     uint256 public maxGasPrice = 1 * 10**18;
 
-    constructor() Ownable(msg.sender) {
+    constructor(address owner) Ownable(owner) {
 
     }
 
