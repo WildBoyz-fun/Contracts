@@ -6,8 +6,10 @@ import "./libs/BancorFormula.sol";
 
 contract BondingCurve is BancorFormula {
 
-    uint256 private _tokenSupplyOffset = 1197424701255807981000275879;
-    uint256 private _depositBalanceOffset = 60310000000000000;
+//    uint256 private _tokenSupplyOffset = 1197424701255807981000275879;
+//    uint256 private _depositBalanceOffset = 60310000000000000;
+    uint256 private _tokenSupplyOffset = 1762049353456217679748953228;
+    uint256 private _depositBalanceOffset = 970000000000000000;
     uint32 private _reserveRatio = 100000; // 10%
 
     constructor() {

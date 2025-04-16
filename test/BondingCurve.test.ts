@@ -20,28 +20,22 @@ describe("BondingCurve", function () {
 
         let tokenSupply = hre.ethers.parseEther("0");
         let depositBalance = hre.ethers.parseEther("0");
+        let prevTokenAmount = null;
 
-        const tokenAmount1 = await bondingCurve.calculatePurchaseReturn(tokenSupply, depositBalance, ethDepositAmount);
+        for (let i = 0; i < 40; i++) {
+            const tokenAmount = await bondingCurve.calculatePurchaseReturn(tokenSupply, depositBalance, ethDepositAmount);
+            console.log(hre.ethers.formatUnits(tokenAmount, scale));
 
-        tokenSupply += tokenAmount1;
-        depositBalance += ethDepositAmount;
+            tokenSupply += tokenAmount;
+            depositBalance += ethDepositAmount;
 
-        const tokenAmount2 = await bondingCurve.calculatePurchaseReturn(tokenSupply, depositBalance, ethDepositAmount);
+            if (prevTokenAmount != null) {
+                expect(prevTokenAmount).greaterThan(tokenAmount);
+            }
+            prevTokenAmount = tokenAmount;
+        }
 
-        tokenSupply += tokenAmount2;
-        depositBalance += ethDepositAmount;
-
-        const tokenAmount3 = await bondingCurve.calculatePurchaseReturn(tokenSupply, depositBalance, ethDepositAmount);
-
-        tokenSupply += tokenAmount3;
-        depositBalance += ethDepositAmount;
-
-        console.log(hre.ethers.formatUnits(tokenAmount1, scale));
-        console.log(hre.ethers.formatUnits(tokenAmount2, scale));
-        console.log(hre.ethers.formatUnits(tokenAmount3, scale));
-
-        expect(tokenAmount1).greaterThan(tokenAmount2);
-        expect(tokenAmount2).greaterThan(tokenAmount3);
+        console.log(`total token supplied: ${hre.ethers.formatUnits(tokenSupply, scale)}`);
     })
 
     it("Should be returned same amount of deposit if you sell the same number of tokens", async function () {
@@ -71,15 +65,35 @@ describe("BondingCurve", function () {
         let tokenSupply = hre.ethers.parseEther("0");
         let depositBalance = hre.ethers.parseEther("0");
 
-        const ethDepositAmount = hre.ethers.parseEther("1");
-        console.log(`deposit amount: ${parseFloat(hre.ethers.formatEther(ethDepositAmount))}`);
+        const ethDepositAmount1 = hre.ethers.parseEther("0.000000005");
+
+        const tokenStartAmount = await bondingCurve.calculatePurchaseReturn(tokenSupply, depositBalance, ethDepositAmount1);
+        const tokenStartPrice = toFloat(ethDepositAmount1)/toFloat(tokenStartAmount)
+        console.log(`token start price: ${tokenStartPrice}`);
+
+        const ethDepositAmount = hre.ethers.parseEther("40");
+        console.log(`eth deposit amount: ${toFloat(ethDepositAmount)}`);
 
         const tokenAmount = await bondingCurve.calculatePurchaseReturn(tokenSupply, depositBalance, ethDepositAmount);
-        console.log(`token amount: ${hre.ethers.formatUnits(tokenAmount, scale)}`);
+        console.log(`token sale amount: ${hre.ethers.formatUnits(tokenAmount, scale)}`);
+
+        const tokenEndAmount = await bondingCurve.calculatePurchaseReturn(tokenAmount, ethDepositAmount, ethDepositAmount1);
+        const tokenEndPrice = toFloat(ethDepositAmount1)/toFloat(tokenEndAmount)
+        console.log(`token end price: ${tokenEndPrice}`);
+        console.log(`Price increase ${((tokenEndPrice - tokenStartPrice)/tokenStartPrice) * 100}%`);
+
+        const tokenProvideAmount = 200000000
+        const ethProvideAmount = tokenEndPrice * tokenProvideAmount
+        console.log(`LP ratio (token:eth) = (${tokenProvideAmount}:${ethProvideAmount})`)
+        console.log(`Remaining ${toFloat(ethDepositAmount) - ethProvideAmount} eth`)
 
         const ethAmount = await bondingCurve.calculatePurchaseBalance(tokenSupply, depositBalance, tokenAmount);
-        console.log(`eth amount: ${parseFloat(hre.ethers.formatEther(ethAmount))}`)
+        console.log(`eth amount: ${toFloat(ethAmount)}`)
 
-        expect(Math.abs(parseFloat(hre.ethers.formatEther(ethDepositAmount - ethAmount)))).lessThan(epsilon)
+        expect(Math.abs(toFloat(ethDepositAmount - ethAmount))).lessThan(epsilon)
     })
+
+    function toFloat(amount: bigint): number {
+        return parseFloat(hre.ethers.formatEther(amount))
+    }
 });
