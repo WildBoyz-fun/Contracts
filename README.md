@@ -51,11 +51,12 @@
 ## Test LiquidityProvider
 
 https://blog.uniswap.org/your-first-uniswap-integration
-1. create an app in https://dashboard.alchemy.com/ with enabling Ethereum mainnet network.
-2. Forking Mainnet locally
+1. Create an app in https://dashboard.alchemy.com/ with enabling ethereum mainnet network.
+2. Fork ethereum mainnet locally
 > npx hardhat node --fork https://eth-mainnet.alchemyapi.io/v2/{YOUR_API_KEY}
 3. Test with local network
 > npx hardhat test test/LiquidityProvider.test.ts --network localhost
+
 # .env
 환경변수..
 
