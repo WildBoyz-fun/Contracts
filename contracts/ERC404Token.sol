@@ -24,7 +24,10 @@ contract ERC404Token is Ownable, ERC404 {
     address initialMintRecipient_,
     address tokenTreasury_,
     uint256 taxPermil_,
-    string memory imageURI_
+    string memory imageURI_,
+    string memory trait_type_,
+    string[5] memory trait_values_,
+    string[5] memory images_
   ) ERC404(name_, symbol_, 18) Ownable(initialOwner_) {
     // Do not mint the ERC721s to the initial owner, as it's a waste of gas.
     _setERC721TransferExempt(initialMintRecipient_, true);
@@ -33,8 +36,21 @@ contract ERC404Token is Ownable, ERC404 {
     _taxPermil = taxPermil_;
     // set default trait and image values
     dataURI = imageURI_;
-    trait_values = ['','','','','','']; // ["Green","Blue","Purple","Orange","Red","Color"]
-    images = ['','','','','']; // ["1.gif","2.gif","3.gif","4.gif","5.gif"]
+    trait_values = [
+      trait_values_[0],
+      trait_values_[1],
+      trait_values_[2],
+      trait_values_[3],
+      trait_values_[4],
+      trait_type_];
+    // ["Green","Blue","Purple","Orange","Red","Color"]
+    images = [
+      images_[0],
+      images_[1],
+      images_[2],
+      images_[3],
+      images_[4]];
+    // ["1.gif","2.gif","3.gif","4.gif","5.gif"]
   }
 
   function setERC721TransferExempt(
