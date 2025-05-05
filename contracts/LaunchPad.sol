@@ -1,22 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IERC404} from "./interfaces/IERC404.sol";
-import {BioDiversityERC404Token} from "./BioDiversityERC404Token.sol";
+// import {IERC404} from "./libs/ERC404/interfaces/IERC404.sol";
+// import {ERC404Token} from "./ERC404Token.sol";
+import { MyToken } from "./libs/sample/MyToken.sol";
 import "./libs/MaxGasPrice.sol";
 import "./BondingCurve.sol";
+import "./TokenTreasury.sol";
 
-contract LaunchPad is Ownable, MaxGasPrice {
 
-    // 생성시 deploy
-    IERC404 private _tokenContract;
-    // deploy 필요
+contract LaunchPad is MaxGasPrice {
+    IERC20 private _tokenContract;
+
     BondingCurve private _bondingCurveContract;
+    
     uint256 public totalContractCount;
-    // contract owner
-    // mapping(address => address[]) public ownerToContracts;
+    uint256 targetFundRasingAmount = 800_000_000 * 10 ** 18;
 
     mapping(address => bool) public deployedContracts;
     // sale or not sale
@@ -36,44 +35,52 @@ contract LaunchPad is Ownable, MaxGasPrice {
         string symbolName
     );
 
-    constructor (address bondingCurveContract) Ownable(msg.sender) MaxGasPrice(msg.sender) {
+    event TokenTreasuryContractDeployed(
+        address indexed contractAddress
+    );
 
+    constructor (address bondingCurveContract) MaxGasPrice(msg.sender) {
         _bondingCurveContract = BondingCurve(bondingCurveContract);
     }
 
-    function createBioDiversityERC404Token(uint256 totalSupply, string memory symbol, string memory name, address owner, uint256 taxPermil) public returns (address, address) {
+    function createTokenTreasury(address[] memory tokenOwners) private returns (address) {
+        TokenTreasury tokenTreasury = new TokenTreasury(tokenOwners);
+        return address(tokenTreasury);
+    }
 
-        // bondingCurve Parameter
-
-        // ERC404 Token mint to launchPad
-        // new LaunchPadTreasury Contract?? (owners, eth, erc20token, deposit/withdraw, multisig strategy, earning(token exit 75~80%))
-        TokenTreasury tokenTreasury = new TokenTreasury();
-        BioDiversityERC404Token newContract = new BioDiversityERC404Token(name, symbol, totalSupply, owner, address(this), address(tokenTreasury), taxPermil, images..., taxOn / taxOff);
-
-        // Store the contract address
-        address contractAddress = address(newContract);
-
+    // function createBioDiversityERC404Token(address[] memory tokenTreasuryOwners, uint256 totalSupply, string memory symbol, string memory name, address owner, uint256 taxPermil, 
+    //     string memory imageURI_, string memory trait_type_, string[5] memory trait_values_, string[5] memory images_) public returns (address, address) {
+    function createBioDiversityERC404Token(string memory name, string memory symbol, uint256 totalSupply) public returns (address) {
+                
+        // 토큰 트레저리 생성
+        // address tokenTreasuryAddress = createTokenTreasury(tokenTreasuryOwners);
+        // 토큰 생성
+        // ERC404Token newContract = new ERC404Token(name, symbol, totalSupply, owner, address(this), tokenTreasuryAddress, taxPermil, imageURI_, trait_type_, trait_values_, images_);
+        MyToken newContract = new MyToken(name, symbol, totalSupply);
+        address contractAddress = address(newContract); 
+        
         // Already Deployed (AD)
         require(!deployedContracts[contractAddress], "AD");
 
         deployedContracts[contractAddress] = true;
-
+        // contractSaleStatus[contractAddress] = true;
         totalContractCount++;
-
-        // contract별 token 공급량
+        
+        
+        // bondingCurveContract contract별 token 공급량
         contractsTotalSupply[contractAddress] = 0;
-        // contract별 eth 예치양
+        // bondingCurveContract contract별 eth 예치양
         contractsEthDepositBalance[contractAddress] = 0;
 
-        contractSaleStatus[contractAddress] = true;
-
+        
         // Emit event for tracking
         emit ContractDeployed(contractAddress, msg.sender, symbol);
+        // emit TokenTreasuryContractDeployed(tokenTreasuryAddress);
 
-        return contractAddress;
+        return (contractAddress);
     }
 
-     function startSale(address contractAddress) external onlyOwner {
+     function startSale(address contractAddress) public onlyOwner {
         // contract not deployed
         require(deployedContracts[contractAddress], "CND");
         // contract not sale (NSA)
@@ -86,7 +93,7 @@ contract LaunchPad is Ownable, MaxGasPrice {
 
 
     // call endSale with bondingCurve
-    function endSale(address contractAddress) external onlyOwner {
+    function endSale(address contractAddress) public onlyOwner {
         // contract not deployed
         require(deployedContracts[contractAddress], "CND");
         // contract sale active (SA)
@@ -97,7 +104,7 @@ contract LaunchPad is Ownable, MaxGasPrice {
         emit SaleEnded(contractAddress);
     }
 
-    function getContractSaleStatus(address contractAddress) internal returns (bool) {
+    function getContractSaleStatus(address contractAddress) external view returns (bool) {
 
         require(deployedContracts[contractAddress], "CND");
 
@@ -106,9 +113,10 @@ contract LaunchPad is Ownable, MaxGasPrice {
 
     function buyToken(address contractAddress) public payable validGasPrice returns (uint256) {
         // contract sale not active (SNA)
-        require(getContractSaleStatus(contractAddress), "SNA");
+        // require(getContractSaleStatus(contractAddress), "SNA");
+        require(contractsTotalSupply[contractAddress] < targetFundRasingAmount, "TFR");
 
-        _tokenContract = IERC404(contractAddress);
+        _tokenContract = IERC20(contractAddress);
         // eth
         uint256 deposit = msg.value;
 
@@ -121,8 +129,10 @@ contract LaunchPad is Ownable, MaxGasPrice {
 
         require(_tokenContract.balanceOf(address(this)) >= amount, "not enough balance");
 
-        _tokenContract.erc20TransferFrom(address(this), msg.sender, amount);
-
+        // _tokenContract.erc20TransferFrom(address(this), msg.sender, amount);
+        // _tokenContract.approve(msg.sender, amount);
+        _tokenContract.transfer(msg.sender, amount);
+        
         emit TokensPurchased(msg.sender, amount);
 
         // contract 누적 token 집계
@@ -130,58 +140,41 @@ contract LaunchPad is Ownable, MaxGasPrice {
         // contract 누적 eth 집계
         contractsEthDepositBalance[contractAddress] += deposit;
 
-        // eth fee??
-        // contractsTotalSupply[contractAddress] >  8억개 판매시 중단 (10억개 발행)
-        // 모집 event 발행
-
-        // to do implement
-        // bonding curve 달성 시 이벤트 필요 (uniswap) -  + contract marking // block to buy / sell
-        // call sendTokenToUniSwap
-        // TokenTreasury tax on
-
+        if (contractsTotalSupply[contractAddress] >= targetFundRasingAmount) {
+            // endSale(contractAddress);
+            // emit SaleEnded(contractAddress);
+        }
 
         return amount;
     }
 
-    function tokenPreview (address contractAddress, uint256 tokenAmount) public {
-        // implement bondingCurve 남은 토큰량 계산
-    }
-
     function sellToken(address contractAddress, uint256 amount) validGasPrice public {
 
-        require(getContractSaleStatus(contractAddress), "SNA");
+        // require(getContractSaleStatus(contractAddress), "SNA");
         require(amount > 0, "Amount must be non-zero!");
 
-        _tokenContract = IERC404(contractAddress);
+        _tokenContract = IERC20(contractAddress);
 
         require(_tokenContract.balanceOf(msg.sender) >= amount, "Sender does not have enough tokens to sell.");
-        require(_tokenContract.allowance(msg.sender, address(this)) >= amount, "Insufficient allowance");
+        // require(_tokenContract.allowance(msg.sender, address(this)) >= amount, "Insufficient allowance");
 
         uint256 deposit = _bondingCurveContract.calculateSaleReturn(contractsTotalSupply[contractAddress], contractsEthDepositBalance[contractAddress], amount);
-
 
         contractsEthDepositBalance[contractAddress] -= deposit;
         contractsTotalSupply[contractAddress] -= amount;
 
-        _tokenContract.erc20TransferFrom(msg.sender, address(this), amount);
+    
+        _tokenContract.transferFrom(msg.sender, address(this), amount);        
+        // _tokenContract.transfer(address(this), amount);
 
         // fee 차감 구현 필요
         // //fee계산 1%차감 deposit = deposit - fee
         payable(msg.sender).transfer(deposit);
     }
 
-    function getLaunchedContractCount() public returns (uint256) {
+    function getLaunchedContractCount() public view returns (uint256) {
         return totalContractCount;
     }
-
-    // function checkContractState(address contractAddress) public returns (bool) {
-    //     return false;
-    // }
-
-    // function getActiveContractCount() public returns (uint256) {
-
-    //     return 100;
-    // }
 
 
 }
