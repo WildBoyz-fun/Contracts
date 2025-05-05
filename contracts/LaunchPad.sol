@@ -39,6 +39,12 @@ contract LaunchPad is MaxGasPrice {
         address indexed contractAddress
     );
 
+
+    modifier onlyDeployed(address contractAddress) {
+        require(deployedContracts[contractAddress], "CND");
+        _;
+    }
+
     constructor (address bondingCurveContract) MaxGasPrice(msg.sender) {
         _bondingCurveContract = BondingCurve(bondingCurveContract);
     }
@@ -80,9 +86,7 @@ contract LaunchPad is MaxGasPrice {
         return (contractAddress);
     }
 
-     function startSale(address contractAddress) public onlyOwner {
-        // contract not deployed
-        require(deployedContracts[contractAddress], "CND");
+     function startSale(address contractAddress) external onlyOwner onlyDeployed(contractAddress){
         // contract not sale (NSA)
         require(!contractSaleStatus[contractAddress], "NSA");
 
@@ -93,9 +97,8 @@ contract LaunchPad is MaxGasPrice {
 
 
     // call endSale with bondingCurve
-    function endSale(address contractAddress) public onlyOwner {
-        // contract not deployed
-        require(deployedContracts[contractAddress], "CND");
+    function endSale(address contractAddress) public onlyOwner onlyDeployed(contractAddress){
+        
         // contract sale active (SA)
         require(contractSaleStatus[contractAddress], "SA");
 
@@ -104,11 +107,12 @@ contract LaunchPad is MaxGasPrice {
         emit SaleEnded(contractAddress);
     }
 
-    function getContractSaleStatus(address contractAddress) external view returns (bool) {
-
-        require(deployedContracts[contractAddress], "CND");
-
+    function getContractSaleStatus(address contractAddress) external view onlyDeployed(contractAddress) returns (bool) {
         return contractSaleStatus[contractAddress];
+    }
+
+    function calculatePurchaseBalance(address contractAddress, uint256 tokenAmountToPurchase) external view onlyDeployed(contractAddress) returns (uint256) {
+        return _bondingCurveContract.calculatePurchaseBalance(contractsTotalSupply[contractAddress], contractsEthDepositBalance[contractAddress], tokenAmountToPurchase);
     }
 
     function buyToken(address contractAddress) public payable validGasPrice returns (uint256) {

@@ -111,6 +111,7 @@ describe("LaunchPad", function () {
             expect(await launchPad.getLaunchedContractCount()).to.equals(1);
             
         });
+
     });
 
     describe("Contract Buy / Sell Test", function () {
@@ -156,6 +157,48 @@ describe("LaunchPad", function () {
             
             expect(buyEvent?.args.buyer).to.equal(buyer.address);
             expect(buyEvent?.args.amount).to.be.equal(buyerTokenBalance); 
+        });
+
+        it("Get AmountToPurchase", async function () {
+            const { launchPad } = await loadFixture(deployBondingCurve);
+        
+            const [owner, buyer] = await hre.ethers.getSigners();
+
+            console.log(`contract owner ${owner.address}`)
+
+            const tx = await launchPad.connect(owner).createBioDiversityERC404Token("MyToken", "MT", ethers.parseEther("1000000000"));
+            const receipt = await tx.wait();
+            
+            const event = receipt?.logs
+                        .map(log => launchPad.interface.parseLog(log))
+                        .find(e => e?.name === "ContractDeployed");
+        
+            const contractAddress = event?.args.contractAddress;
+        
+            expect(event?.args.deployedBy).to.equals(owner.address)    
+            expect(await launchPad.getLaunchedContractCount()).to.equals(1);
+
+             // Start the token sale
+             await launchPad.startSale(contractAddress);
+
+             const token = await hre.ethers.getContractAt("IERC20", contractAddress);
+             const totalSupply = await token.totalSupply();       
+ 
+             console.log(`TotalSupply: ${hre.ethers.formatUnits(totalSupply, 18)}`)
+             
+             // Buy tokens with 1 ETH
+             const buyTx = await launchPad.connect(buyer).buyToken(contractAddress, { value: ethers.parseEther("1.1"),});
+             const buyReceipt = await buyTx.wait();
+ 
+             // Assert event emitted
+             const buyEvent = buyReceipt?.logs
+             .map(log => launchPad.interface.parseLog(log))
+             .find(e => e?.name === "TokensPurchased");
+
+            const amount = await launchPad.calculatePurchaseBalance(contractAddress, ethers.parseEther("0.01"));
+
+            console.log(`Amount To Purhcase: ${parseFloat(hre.ethers.formatEther(amount))}`);
+            
         });
 
         it("verify sell token", async function () {
