@@ -60,8 +60,10 @@ describe("ERC404Token", function () {
       const { erc404, owner, user } = await loadFixture(deployERC404Fixture);
       await erc404.setERC721TransferExempt(user.address, true);
       
-      await erc404.transfer(user.address, ethers.parseEther("1"));
-      await expect(erc404.ownerOf(1)).to.be.reverted; // NFT 생성 안 됨
+      await erc404.transfer(user.address, ethers.parseEther("2"));
+      const ownedTokens = await erc404.owned(user.address);
+      //console.log(ownedTokens.length);
+      expect(ownedTokens.length).to.equal(0); // NFT 생성 안 됨 - 보유 Token 0개
     });
   });
 
@@ -81,10 +83,14 @@ describe("ERC404Token", function () {
 
   describe("메타데이터 기능", function () {
     it("토큰 ID 기반 메타데이터 생성", async function () {
-      const { erc404, owner } = await loadFixture(deployERC404Fixture);
-      await erc404.transfer(owner.address, ethers.parseEther("1"));
-      
-      const tokenURI = await erc404.tokenURI(1);
+      const { erc404, owner, user } = await loadFixture(deployERC404Fixture);
+      await erc404.transfer(user.address, ethers.parseEther("2"));
+
+      const ownedTokens = await erc404.owned(user.address);
+      //console.log(ownedTokens);
+      //console.log(ownedTokens.length);
+      const ownedTokenId = ownedTokens[0];
+      const tokenURI = await erc404.tokenURI(ownedTokenId);
       expect(tokenURI).to.include("data:application/json;utf8");
       expect(tokenURI).to.include('"trait_type":"Color"');
     });
