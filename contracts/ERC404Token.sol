@@ -31,7 +31,7 @@ contract ERC404Token is Ownable, ERC404 {
   ) ERC404(name_, symbol_, 18) Ownable(initialOwner_) {
     // Do not mint the ERC721s to the initial owner, as it's a waste of gas.
     _setERC721TransferExempt(initialMintRecipient_, true);
-    _mintERC20(initialMintRecipient_, initialSupply_ * units);
+    _mintERC20(initialMintRecipient_, initialSupply_);
     _tokenTreasury = tokenTreasury_;
     _taxPermil = taxPermil_;
     // set default trait and image values

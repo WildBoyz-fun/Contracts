@@ -4,8 +4,7 @@ import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { ethers } from "hardhat";
 
 describe("ERC404Token", function () {
-  const initialSupply = "1000000";
-  const initialToken = ethers.parseEther(initialSupply);  
+  const initialSupply = ethers.parseEther("1000000");  
   const taxPermil = 50; // 5%
 
   async function deployERC404Fixture() {
@@ -34,7 +33,7 @@ describe("ERC404Token", function () {
       
       expect(await erc404.name()).to.equal("TestToken");
       expect(await erc404.symbol()).to.equal("TT");
-      expect(await erc404.erc20BalanceOf(owner.address)).to.equal(initialToken);
+      expect(await erc404.erc20BalanceOf(owner.address)).to.equal(initialSupply);
       expect(await erc404.owner()).to.equal(owner.address);
       expect(await erc404.dataURI()).to.include("https://example.com/");
     });
