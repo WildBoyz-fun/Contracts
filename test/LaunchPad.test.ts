@@ -4,33 +4,46 @@ import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers"
 import { ethers } from "hardhat";
 import { LaunchPanTokenTreasury__factory } from "../typechain-types";
 
+import { TokenParams } from "./params/TokenParams";
+
 describe("LaunchPad", function () {
-    
-    async function deployBondingCurve() {
+    let params: TokenParams;
+
+    async function initParams() {
         const [owner] = await hre.ethers.getSigners();
         const bondingCurve = await hre.ethers.deployContract("BondingCurve")
         const launchPad = await hre.ethers.deployContract("LaunchPad", [await bondingCurve.getAddress()])
 
-        return { launchPad };
+        params = new TokenParams();
+        return { launchPad, params };
     }
 
     describe("Contract Deploy And Status Check", function () {
         it("contract must be deployed before checking status", async function () {
-            const { launchPad} = await loadFixture(deployBondingCurve);
+            const { launchPad, params} = await loadFixture(initParams);
         
             const fakeContractAddress = ethers.Wallet.createRandom().address;
             
             await expect(launchPad.getContractSaleStatus(fakeContractAddress)).to.be.revertedWith("CND");
         });
 
-        it("contract is deployed. Checking Owner and Contract is not On Sale", async function () {
-            const { launchPad } = await loadFixture(deployBondingCurve);
+        it("contract is deployed. Checking Owner and Contract is On Sale", async function () {
+            const { launchPad, params } = await loadFixture(initParams);
         
             const [owner] = await hre.ethers.getSigners();
 
             console.log(`contract owner ${owner.address}`)
-
-            const tx = await launchPad.connect(owner).createBioDiversityERC404Token("MyToken", "MT", ethers.parseEther("1000000000"));
+    
+            const tx = await launchPad.createBioDiversityERC404Token(params.tokenTreasuryAddress,
+                params.totalSupply,
+                params.symbol,
+                params.name,
+                params.taxPermil,
+                params.imageURI,
+                params.traitType,
+                params.traitValues,
+                params.images
+            );
             const receipt = await tx.wait();
             
             const event = receipt?.logs
@@ -40,17 +53,26 @@ describe("LaunchPad", function () {
             const contractAddress = event?.args.contractAddress;
             
             expect(event?.args.deployedBy).to.equals(owner.address);
-            expect(await launchPad.getContractSaleStatus(contractAddress)).to.equals(false);
+            expect(await launchPad.getContractSaleStatus(contractAddress)).to.equals(true);
         });
 
         it("contract is deployed. Checking Owner and Contract is On Sale", async function () {
-            const { launchPad } = await loadFixture(deployBondingCurve);
+            const { launchPad } = await loadFixture(initParams);
         
             const [owner] = await hre.ethers.getSigners();
 
             console.log(`contract owner ${owner.address}`)
 
-            const tx = await launchPad.connect(owner).createBioDiversityERC404Token("MyToken", "MT", ethers.parseEther("1000000000"));
+            const tx = await launchPad.createBioDiversityERC404Token(params.tokenTreasuryAddress,
+                params.totalSupply,
+                params.symbol,
+                params.name,
+                params.taxPermil,
+                params.imageURI,
+                params.traitType,
+                params.traitValues,
+                params.images
+            );
             const receipt = await tx.wait();
             
             const event = receipt?.logs
@@ -60,21 +82,28 @@ describe("LaunchPad", function () {
             const contractAddress = event?.args.contractAddress;
             
             expect(event?.args.deployedBy).to.equals(owner.address);
-            
-            await launchPad.connect(owner).startSale(contractAddress);
 
             expect(await launchPad.getContractSaleStatus(contractAddress)).to.equals(true);
         });
 
 
         it("contract is deployed. Contract Sale is halted", async function () {
-            const { launchPad } = await loadFixture(deployBondingCurve);
+            const { launchPad } = await loadFixture(initParams);
         
             const [owner] = await hre.ethers.getSigners();
 
             console.log(`contract owner ${owner.address}`)
 
-            const tx = await launchPad.connect(owner).createBioDiversityERC404Token("MyToken", "MT", ethers.parseEther("1000000000"));
+            const tx = await launchPad.createBioDiversityERC404Token(params.tokenTreasuryAddress,
+                params.totalSupply,
+                params.symbol,
+                params.name,
+                params.taxPermil,
+                params.imageURI,
+                params.traitType,
+                params.traitValues,
+                params.images
+            );
             const receipt = await tx.wait();
             
             const event = receipt?.logs
@@ -85,20 +114,29 @@ describe("LaunchPad", function () {
             
             expect(event?.args.deployedBy).to.equals(owner.address);
             
-            await launchPad.connect(owner).startSale(contractAddress);
+
             expect(await launchPad.getContractSaleStatus(contractAddress)).to.equals(true);
-            await launchPad.connect(owner).endSale(contractAddress);
+            await launchPad.connect(owner).changeContractSaleStatus(contractAddress);
             expect(await launchPad.getContractSaleStatus(contractAddress)).to.equals(false);
         });
 
         it("contract is deployed. Contract Count 1", async function () {
-            const { launchPad } = await loadFixture(deployBondingCurve);
+            const { launchPad } = await loadFixture(initParams);
         
             const [owner] = await hre.ethers.getSigners();
 
             console.log(`contract owner ${owner.address}`)
 
-            const tx = await launchPad.connect(owner).createBioDiversityERC404Token("MyToken", "MT", ethers.parseEther("1000000000"));
+            const tx = await launchPad.createBioDiversityERC404Token(params.tokenTreasuryAddress,
+                params.totalSupply,
+                params.symbol,
+                params.name,
+                params.taxPermil,
+                params.imageURI,
+                params.traitType,
+                params.traitValues,
+                params.images
+            );
             const receipt = await tx.wait();
             
             const event = receipt?.logs
@@ -115,15 +153,25 @@ describe("LaunchPad", function () {
     });
 
     describe("Contract Buy / Sell Test", function () {
+        
         it("verify buy token", async function () {
-            const { launchPad} = await loadFixture(deployBondingCurve);
+            const { launchPad} = await loadFixture(initParams);
             const [owner, buyer] = await hre.ethers.getSigners();
             
             const balance = await hre.ethers.provider.getBalance(owner.address);
         
             console.log(`${buyer.address} has a wallet balance: ${balance}`)
 
-            const tx = await launchPad.connect(owner).createBioDiversityERC404Token("MyToken", "MT", ethers.parseEther("1000000000"));
+            const tx = await launchPad.createBioDiversityERC404Token(params.tokenTreasuryAddress,
+                params.totalSupply,
+                params.symbol,
+                params.name,
+                params.taxPermil,
+                params.imageURI,
+                params.traitType,
+                params.traitValues,
+                params.images
+            );
             const receipt = await tx.wait();
             
             const event = receipt?.logs
@@ -131,42 +179,137 @@ describe("LaunchPad", function () {
                         .find(e => e?.name === "ContractDeployed");
             
             const contractAddress = event?.args.contractAddress;
+
+            // const sendAmount = hre.ethers.parseEther("1");
             
-             // Start the token sale
-            await launchPad.startSale(contractAddress);
+            // Send ETH to the contract from otherAccount
+            // const ethTx = await owner.sendTransaction({
+            //     to: contractAddress,
+            //     value: sendAmount
+            // });
+            // await ethTx.wait();
 
-            const token = await hre.ethers.getContractAt("IERC20", contractAddress);
-            const totalSupply = await token.totalSupply();       
+            // const ethBalance = await ethers.provider.getBalance(contractAddress);
+            // console.log(`Contract(${contractAddress}) ETH Balance: ${ethBalance}`)
+        
+            const erc404Token = await hre.ethers.getContractAt("IERC404", contractAddress);
+            const totalSupply = await erc404Token.totalSupply();       
 
-            console.log(`TotalSupply: ${hre.ethers.formatUnits(totalSupply, 18)}`)
+            console.log(`erc404Token TotalSupply: ${totalSupply}`)
+        
+            const launchPadTokenBalance = await erc404Token.erc20BalanceOf(await launchPad.getAddress());
+            const buyerTokenBalance = await erc404Token.erc20BalanceOf(buyer.address);
+            console.log(`[Before Token Purchased] LaunchPad tokenBalance: ${launchPadTokenBalance}`);
+            console.log(`[Before Token Purchased] buyerTokenBalance tokenBalance: ${buyerTokenBalance}`);
             
             // Buy tokens with 1 ETH
-            const buyTx = await launchPad.connect(buyer).buyToken(contractAddress, { value: ethers.parseEther("0.01"),});
+            const buyTx = await launchPad.connect(buyer).buyToken(contractAddress, { value: ethers.parseEther("1"),});
+            const buyReceipt = await buyTx.wait();
+            
+            // Assert event emitted
+            const buyEvent = buyReceipt?.logs
+            .map(log => launchPad.interface.parseLog(log))
+            .find(e => e?.name === "TokensPurchased");
+
+            const launchPadTokenBalance2 = await erc404Token.erc20BalanceOf(await launchPad.getAddress());
+            const buyerTokenBalance2 = await erc404Token.erc20BalanceOf(buyer.address);
+
+            console.log(`[After Token Purchased] launchPad: ${await launchPad.getAddress()}, token balance: ${launchPadTokenBalance2}`)
+            console.log(`[After Token Purchased] buyer: ${buyer.address}, token balance: ${buyerTokenBalance2}`)
+            
+            expect(buyEvent?.args.buyer).to.equal(buyer.address);
+            expect(buyEvent?.args.amount).to.be.equal(totalSupply - launchPadTokenBalance2); 
+        });
+
+        it("verify sell token", async function () {
+            const { launchPad} = await loadFixture(initParams);
+            const [owner, buyer] = await hre.ethers.getSigners();
+            
+            const balance = await hre.ethers.provider.getBalance(owner.address);
+        
+            console.log(`${buyer.address} has a wallet balance: ${balance}`)
+
+            const tx = await launchPad.createBioDiversityERC404Token(params.tokenTreasuryAddress,
+                params.totalSupply,
+                params.symbol,
+                params.name,
+                params.taxPermil,
+                params.imageURI,
+                params.traitType,
+                params.traitValues,
+                params.images
+            );
+            const receipt = await tx.wait();
+            
+            const event = receipt?.logs
+                        .map(log => launchPad.interface.parseLog(log))
+                        .find(e => e?.name === "ContractDeployed");
+            
+            const contractAddress = event?.args.contractAddress;
+
+            const erc404Token = await hre.ethers.getContractAt("IERC404", contractAddress);
+            const totalSupply = await erc404Token.totalSupply();       
+
+            console.log(`erc404Token TotalSupply: ${hre.ethers.formatUnits(totalSupply, 18)}`)
+            
+            // Buy tokens with 1 ETH
+            const buyTx = await launchPad.connect(buyer).buyToken(contractAddress, { value: ethers.parseEther("1"),});
             const buyReceipt = await buyTx.wait();
 
             // Assert event emitted
             const buyEvent = buyReceipt?.logs
             .map(log => launchPad.interface.parseLog(log))
             .find(e => e?.name === "TokensPurchased");
-
-            const afterTokenBalance = await token.balanceOf(await launchPad.getAddress());
-            const buyerTokenBalance = await token.balanceOf(buyer.address);
-
-            console.log(`launchPad: ${await launchPad.getAddress()}, token balance: ${hre.ethers.formatUnits(afterTokenBalance, 18)}`)
-            console.log(`buyer: ${buyer.address}, token balance: ${hre.ethers.formatUnits(buyerTokenBalance, 18)}`)
+        
+            const launchPadTokenBalance = await erc404Token.erc20BalanceOf(await launchPad.getAddress());
+            const buyerTokenBalance = await erc404Token.erc20BalanceOf(buyer.address);
+            console.log(`[Before Token Sell] LaunchPad tokenBalance: ${launchPadTokenBalance}`);
+            console.log(`[Before Token Sell] buyerTokenBalance tokenBalance: ${buyerTokenBalance}`);
             
             expect(buyEvent?.args.buyer).to.equal(buyer.address);
-            expect(buyEvent?.args.amount).to.be.equal(buyerTokenBalance); 
+            expect(buyEvent?.args.amount).to.be.equal(totalSupply - launchPadTokenBalance); 
+
+            const sellAmount = 100_000n
+            await erc404Token.connect(buyer).approve(await launchPad.getAddress(), sellAmount);
+
+            const sellTx = await launchPad.connect(buyer).sellToken(contractAddress, sellAmount);
+            const sellReceipt = await sellTx.wait();
+
+    
+            const sellEvent = sellReceipt?.logs
+            .map(log => launchPad.interface.parseLog(log))
+            .find(e => e?.name === "TokenSold");
+
+            const launchPadTokenBalance2 = await erc404Token.erc20BalanceOf(await launchPad.getAddress());
+            const buyerTokenBalance2 = await erc404Token.erc20BalanceOf(buyer.address);
+
+            console.log(`[After Token Sell] launchPad: ${await launchPad.getAddress()}, token balance: ${launchPadTokenBalance2}`)
+            console.log(`[After Token Sell] buyer: ${buyer.address}, token balance: ${buyerTokenBalance2}`)
+
+            console.log(`contract ETH balance ${await launchPad.getContractEthBalance(contractAddress)}`);
+            console.log(`contract TotalSupply balance ${await launchPad.getContractTotalSupplyBalance(contractAddress)}`);
+
+            expect(sellEvent?.args.amount).to.be.equal(sellAmount); 
+
         });
 
         it("Get AmountToPurchase", async function () {
-            const { launchPad } = await loadFixture(deployBondingCurve);
+            const { launchPad } = await loadFixture(initParams);
         
             const [owner, buyer] = await hre.ethers.getSigners();
 
             console.log(`contract owner ${owner.address}`)
 
-            const tx = await launchPad.connect(owner).createBioDiversityERC404Token("MyToken", "MT", ethers.parseEther("1000000000"));
+            const tx = await launchPad.createBioDiversityERC404Token(params.tokenTreasuryAddress,
+                params.totalSupply,
+                params.symbol,
+                params.name,
+                params.taxPermil,
+                params.imageURI,
+                params.traitType,
+                params.traitValues,
+                params.images
+            );
             const receipt = await tx.wait();
             
             const event = receipt?.logs
@@ -178,16 +321,13 @@ describe("LaunchPad", function () {
             expect(event?.args.deployedBy).to.equals(owner.address)    
             expect(await launchPad.getLaunchedContractCount()).to.equals(1);
 
-             // Start the token sale
-             await launchPad.startSale(contractAddress);
-
-             const token = await hre.ethers.getContractAt("IERC20", contractAddress);
-             const totalSupply = await token.totalSupply();       
+             const erc404Token = await hre.ethers.getContractAt("IERC404", contractAddress);
+             const totalSupply = await erc404Token.totalSupply();       
  
              console.log(`TotalSupply: ${hre.ethers.formatUnits(totalSupply, 18)}`)
              
              // Buy tokens with 1 ETH
-             const buyTx = await launchPad.connect(buyer).buyToken(contractAddress, { value: ethers.parseEther("1.1"),});
+             const buyTx = await launchPad.connect(buyer).buyToken(contractAddress, { value: ethers.parseEther("1"),});
              const buyReceipt = await buyTx.wait();
  
              // Assert event emitted
@@ -201,65 +341,7 @@ describe("LaunchPad", function () {
             
         });
 
-        it("verify sell token", async function () {
-            const { launchPad} = await loadFixture(deployBondingCurve);
-            const [owner, buyer] = await hre.ethers.getSigners();
-            
-            const balance = await hre.ethers.provider.getBalance(owner.address);
-        
-            console.log(`${buyer.address} has a wallet balance: ${balance}`)
 
-            const tx = await launchPad.connect(owner).createBioDiversityERC404Token("MyToken", "MT", ethers.parseEther("1000000000"));
-            const receipt = await tx.wait();
-            
-            const event = receipt?.logs
-                        .map(log => launchPad.interface.parseLog(log))
-                        .find(e => e?.name === "ContractDeployed");
-            
-            const contractAddress = event?.args.contractAddress;
-            
-             // Start the token sale
-            await launchPad.startSale(contractAddress);
-
-            const token = await hre.ethers.getContractAt("IERC20", contractAddress);
-            const totalSupply = await token.totalSupply();       
-
-            console.log(`TotalSupply: ${hre.ethers.formatUnits(totalSupply, 18)}`)
-            
-            // Buy tokens with 1 ETH
-            const buyTx = await launchPad.connect(buyer).buyToken(contractAddress, { value: ethers.parseEther("0.01"),});
-            const buyReceipt = await buyTx.wait();
-
-            // Assert event emitted
-            const buyEvent = buyReceipt?.logs
-            .map(log => launchPad.interface.parseLog(log))
-            .find(e => e?.name === "TokensPurchased");
-
-            const afterTokenBalance = await token.balanceOf(await launchPad.getAddress());
-            const buyerTokenBalance = await token.balanceOf(buyer.address);
-
-            console.log(`launchPad: ${await launchPad.getAddress()}, token balance: ${hre.ethers.formatUnits(afterTokenBalance, 18)}`)
-            console.log(`buyer: ${buyer.address}, token balance: ${hre.ethers.formatUnits(buyerTokenBalance, 18)}`)
-            
-            expect(buyEvent?.args.buyer).to.equal(buyer.address);
-            expect(buyEvent?.args.amount).to.be.equal(buyerTokenBalance); 
-
-            
-            const sellAmount = 100_000n
-            await token.connect(buyer).approve(await launchPad.getAddress(), sellAmount);
-
-            const sellTx = await launchPad.connect(buyer).sellToken(contractAddress, sellAmount);
-            const sellReceipt = await sellTx.wait();
-
-            const afterTokenBalance2 = await token.balanceOf(await launchPad.getAddress());
-            const buyerTokenBalance2 = await token.balanceOf(buyer.address);
-
-            console.log(`launchPad: ${await launchPad.getAddress()}, token balance: ${hre.ethers.formatUnits(afterTokenBalance2, 18)}`)
-            console.log(`buyer: ${buyer.address}, token balance: ${hre.ethers.formatUnits(buyerTokenBalance2, 18)}`)
-
-            expect(afterTokenBalance2).to.be.equal(afterTokenBalance + sellAmount); 
-
-        });
 
     });
     

@@ -16,7 +16,11 @@ const config: HardhatUserConfig = {
           optimizer: { enabled: true, runs: 200 },
         }
       },  // for Uniswap v2-periphery
-      { version: "0.8.28" },
+      { version: "0.8.28", 
+        settings: {
+          optimizer: { enabled: true, runs: 200 },
+        }
+      },
     ]
   },
   networks: {
