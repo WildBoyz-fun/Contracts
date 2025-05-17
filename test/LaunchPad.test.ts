@@ -11,8 +11,11 @@ describe("LaunchPad", function () {
 
     async function initParams() {
         const [owner] = await hre.ethers.getSigners();
+        
         const bondingCurve = await hre.ethers.deployContract("BondingCurve")
-        const launchPad = await hre.ethers.deployContract("LaunchPad", [await bondingCurve.getAddress()])
+        const ownerGroupContract = await hre.ethers.deployContract("OwnerGroupContract", [[owner.address]])
+        
+        const launchPad = await hre.ethers.deployContract("LaunchPad", [await bondingCurve.getAddress(), await ownerGroupContract.getAddress()])
 
         params = new TokenParams();
         return { launchPad, params };

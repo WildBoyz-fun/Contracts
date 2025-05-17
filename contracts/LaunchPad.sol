@@ -3,16 +3,18 @@ pragma solidity ^0.8.27;
 
 import {IERC404} from "./libs/ERC404/interfaces/IERC404.sol";
 import {ERC404Token} from "./ERC404Token.sol";
-import { MyToken } from "./libs/sample/MyToken.sol";
 import "./libs/MaxGasPrice.sol";
 import "./BondingCurve.sol";
 import "./TokenTreasury.sol";
+
+import {IOwnerGroupContract} from "./libs/IOwnerGroupContract.sol";
 
 
 contract LaunchPad is MaxGasPrice {
     IERC404 private _tokenContract;
 
     BondingCurve private _bondingCurveContract;
+    IOwnerGroupContract private _ownerGroupContract;    
     
     uint256 public totalContractCount;
     uint256 targetFundRasingAmount = 800_000_000 * 10 ** 18;
@@ -44,6 +46,12 @@ contract LaunchPad is MaxGasPrice {
         _;
     }
 
+
+    modifier onlyOwnerGroup (){
+        require(_ownerGroupContract.isOwner(msg.sender), "Only Owner have a permission.");
+        _;
+    }
+
     // This function is called when ETH is sent to the contract without data
     receive() external payable {
         emit Received(msg.sender, msg.value);
@@ -54,8 +62,9 @@ contract LaunchPad is MaxGasPrice {
         return address(this).balance;
     }
 
-    constructor (address bondingCurveContract) MaxGasPrice(msg.sender) {
+    constructor (address bondingCurveContract, address ownerGroupContract) MaxGasPrice(msg.sender) {
         _bondingCurveContract = BondingCurve(bondingCurveContract);
+        _ownerGroupContract = IOwnerGroupContract(ownerGroupContract);
     }
 
     function createTokenTreasury(address[] memory tokenOwners) private returns (address) {
@@ -70,8 +79,6 @@ contract LaunchPad is MaxGasPrice {
             
         // 404토큰 트레저리 생성 - 1개만 생성(404 모든 토큰 포함), ERC404 Token Interface(Transfer), ETH Withdrawal, DAO (Owners), Voting(?), MultiSig(Owners)
         // 404 token treasury : 초기 텍스 404 토큰으로 수령, 이후 DEX에서 ETH로 Swap (LaunchPad가 Owner or Owner Group(multisig transfer))
-        // TokenTreasury 설계 필요
-        // LauchPadToken Treasury (수익금, 기부금, ETH deposit, withdrawal, OwnerGroup)
         // address tokenTreasuryAddress = createTokenTreasury(tokenTreasuryOwners);
         
         // 토큰 생성
@@ -105,7 +112,7 @@ contract LaunchPad is MaxGasPrice {
         return contractsTotalSupply[contractAddress];
     }
 
-    function changeContractSaleStatus(address contractAddress) public onlyOwner onlyDeployed(contractAddress) returns (bool) {
+    function changeContractSaleStatus(address contractAddress) public onlyOwnerGroup onlyDeployed(contractAddress) returns (bool) {
         
         contractSaleStatus[contractAddress] = !contractSaleStatus[contractAddress];
         
