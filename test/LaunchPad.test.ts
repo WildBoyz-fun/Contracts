@@ -14,8 +14,9 @@ describe("LaunchPad", function () {
         
         const bondingCurve = await hre.ethers.deployContract("BondingCurve")
         const ownerGroupContract = await hre.ethers.deployContract("OwnerGroupContract", [[owner.address]])
+        const launchPadTokenTreasury = await hre.ethers.deployContract("LaunchPanTokenTreasury", [await ownerGroupContract.getAddress()])
         
-        const launchPad = await hre.ethers.deployContract("LaunchPad", [await bondingCurve.getAddress(), await ownerGroupContract.getAddress()])
+        const launchPad = await hre.ethers.deployContract("LaunchPad", [await launchPadTokenTreasury.getAddress(), await bondingCurve.getAddress(), await ownerGroupContract.getAddress()])
 
         params = new TokenParams();
         return { launchPad, params };

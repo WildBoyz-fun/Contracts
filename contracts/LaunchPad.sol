@@ -12,10 +12,10 @@ import {IOwnerGroupContract} from "./libs/IOwnerGroupContract.sol";
 
 contract LaunchPad is MaxGasPrice {
     IERC404 private _tokenContract;
-
     BondingCurve private _bondingCurveContract;
     IOwnerGroupContract private _ownerGroupContract;    
-    
+
+    address private _treasuryAddress;
     uint256 public totalContractCount;
     uint256 targetFundRasingAmount = 800_000_000 * 10 ** 18;
     // buy / sell eth fee %
@@ -32,7 +32,6 @@ contract LaunchPad is MaxGasPrice {
     // events
     event TokensPurchased(address indexed buyer, uint256 amount);
     event TokenSold(address indexed buyer, uint256 amount);
-    event ContractStatusChanged(address indexed contractAddress, bool status);
     event ContractDeployed(
         address indexed contractAddress,
         address indexed deployedBy,
@@ -62,12 +61,16 @@ contract LaunchPad is MaxGasPrice {
         return address(this).balance;
     }
 
-    constructor (address bondingCurveContract, address ownerGroupContract) MaxGasPrice(msg.sender) {
+    constructor (address treasuryAddress, address bondingCurveContract, address ownerGroupContract) MaxGasPrice(msg.sender) {
+        _treasuryAddress = treasuryAddress;
         _bondingCurveContract = BondingCurve(bondingCurveContract);
         _ownerGroupContract = IOwnerGroupContract(ownerGroupContract);
     }
 
     function createTokenTreasury(address[] memory tokenOwners) private returns (address) {
+        
+        //Fixed : 0.001 Eth (수수료) 구현 필요
+
         TokenTreasury tokenTreasury = new TokenTreasury(tokenOwners);
         return address(tokenTreasury);
     }
@@ -113,11 +116,7 @@ contract LaunchPad is MaxGasPrice {
     }
 
     function changeContractSaleStatus(address contractAddress) public onlyOwnerGroup onlyDeployed(contractAddress) returns (bool) {
-        
-        contractSaleStatus[contractAddress] = !contractSaleStatus[contractAddress];
-        
-        emit ContractStatusChanged(contractAddress, contractSaleStatus[contractAddress]);
-        
+        contractSaleStatus[contractAddress] = !contractSaleStatus[contractAddress];    
         return contractSaleStatus[contractAddress];
     }
 
@@ -150,6 +149,8 @@ contract LaunchPad is MaxGasPrice {
         // 1% fee 차감
         deposit =  msg.value / (100 + _feeRate) * 100;
         require(deposit > 0, "Amount must be non-zero!");
+
+        // implemenation : Tax, Fee
         
         uint256 amount = _bondingCurveContract.calculatePurchaseReturn(contractsTotalSupply[contractAddress], contractsEthDepositBalance[contractAddress], deposit);
 
@@ -202,8 +203,15 @@ contract LaunchPad is MaxGasPrice {
         payable(msg.sender).transfer(deposit);
     }
 
-    function getLaunchedContractCount() public view returns (uint256) {
+    function getLaunchedContractCount() external view returns (uint256) {
         return totalContractCount;
+    }
+
+    function sendEthToTreasury(uint256 amount) external onlyOwnerGroup {
+        require(address(this).balance >= amount, "NEE");
+        
+        (bool success, ) = _treasuryAddress.call{value: amount}("");
+        require(success, "ETF");
     }
 
 
