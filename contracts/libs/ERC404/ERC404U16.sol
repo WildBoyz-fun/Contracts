@@ -4,9 +4,9 @@ pragma solidity ^0.8.20;
 import {IERC721Receiver} from "@openzeppelin/contracts/interfaces/IERC721Receiver.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {IERC404} from "./interfaces/IERC404.sol";
-import {PackedDoubleEndedQueue} from "./lib/PackedDoubleEndedQueue.sol";
-import {ERC721Events} from "./lib/ERC721Events.sol";
-import {ERC20Events} from "./lib/ERC20Events.sol";
+import {PackedDoubleEndedQueue} from "./PackedDoubleEndedQueue.sol";
+import {ERC721Events} from "./ERC721Events.sol";
+import {ERC20Events} from "./ERC20Events.sol";
 
 /// @dev This is an optimized ERC404 implementation designed to support smaller collections,
 ///      with id's up to a maximum of 65535.
