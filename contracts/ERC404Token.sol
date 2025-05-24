@@ -3,9 +3,9 @@ pragma solidity ^0.8.0;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-import {ERC404} from "./libs/ERC404/ERC404.sol";
+import {ERC404U16} from "./libs/ERC404/ERC404U16.sol";
 
-contract ERC404Token is Ownable, ERC404 {
+contract ERC404Token is Ownable, ERC404U16 {
   error InsufficientFee();
 //  event TransferFeePaid(bytes data);
   address private _tokenTreasury;
@@ -28,7 +28,7 @@ contract ERC404Token is Ownable, ERC404 {
     string memory trait_type_,
     string[5] memory trait_values_,
     string[5] memory images_
-  ) ERC404(name_, symbol_, 18) Ownable(initialOwner_) {
+  ) ERC404U16(name_, symbol_, 18) Ownable(initialOwner_) {
     // Do not mint the ERC721s to the initial owner, as it's a waste of gas.
     _setERC721TransferExempt(initialMintRecipient_, true);
     _mintERC20(initialMintRecipient_, initialSupply_);
