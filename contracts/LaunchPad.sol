@@ -67,20 +67,20 @@ contract LaunchPad is MaxGasPrice {
         _ownerGroupContract = IOwnerGroupContract(ownerGroupContract);
     }
 
-    function createTokenTreasury(address[] memory tokenOwners) private returns (address) {
+    // function createTokenTreasury(address[] memory tokenOwners) private returns (address) {
         
-        //Fixed : 0.001 Eth (수수료) 구현 필요
+    //     //Fixed : 0.001 Eth (수수료) 구현 필요
 
-        TokenTreasury tokenTreasury = new TokenTreasury(tokenOwners);
-        return address(tokenTreasury);
-    }
+    //     TokenTreasury tokenTreasury = new TokenTreasury(tokenOwners);
+    //     return address(tokenTreasury);
+    // }
 
     function createBioDiversityERC404Token(address tokenTreasuryAddress, uint256 totalSupply, string memory symbol, string memory name, uint256 taxPermil, 
         string memory imageURI_, string memory trait_type_, string[5] memory trait_values_, string[5] memory images_) public returns (address) {
     // function createBioDiversityERC404Token(string memory name, string memory symbol, uint256 totalSupply) public returns (address) {
 
             
-        // 404토큰 트레저리 생성 - 1개만 생성(404 모든 토큰 포함), ERC404 Token Interface(Transfer), ETH Withdrawal, DAO (Owners), Voting(?), MultiSig(Owners)
+        // 404토큰 트레저리 생성 - 1개만 생성(404 모든 토큰 포함), ERC404 Token Interface(Transfer), ETH Withdrawal, DAO (Owners), Voting(?)
         // 404 token treasury : 초기 텍스 404 토큰으로 수령, 이후 DEX에서 ETH로 Swap (LaunchPad가 Owner or Owner Group(multisig transfer))
         // address tokenTreasuryAddress = createTokenTreasury(tokenTreasuryOwners);
         
@@ -149,12 +149,10 @@ contract LaunchPad is MaxGasPrice {
         // 1% fee 차감
         deposit =  msg.value / (100 + _feeRate) * 100;
         require(deposit > 0, "Amount must be non-zero!");
-
-        // implemenation : Tax, Fee
         
         uint256 amount = _bondingCurveContract.calculatePurchaseReturn(contractsTotalSupply[contractAddress], contractsEthDepositBalance[contractAddress], deposit);
 
-        amount = amount / (10 ** 18);
+        // amount = amount / (10 ** 18);
 
         require(_tokenContract.balanceOf(address(this)) >= amount, "not enough balance");
     
