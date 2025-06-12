@@ -4,7 +4,7 @@ import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { ethers } from "hardhat";
 
 describe("ERC404Token", function () {
-  const initialSupply = ethers.parseEther("1000000");  
+  const initialSupply = ethers.parseEther("800000000");  
   const taxPermil = 50; // 5%
 
   async function deployERC404Fixture() {
@@ -42,7 +42,7 @@ describe("ERC404Token", function () {
   describe("ERC20/ERC721 기능", function () {
     it("ERC20 전송 시 NFT 자동 생성/소각", async function () {
       const { erc404, owner, user } = await loadFixture(deployERC404Fixture);
-      const transferAmount = ethers.parseEther("2");
+      const transferAmount = ethers.parseEther("2000000");
       
       await erc404.transfer(user.address, transferAmount);
       //expect(await erc404.erc20BalanceOf(user.address)).to.equal(transferAmount); // 세금으로 인한 변동
@@ -59,7 +59,7 @@ describe("ERC404Token", function () {
       const { erc404, owner, user } = await loadFixture(deployERC404Fixture);
       await erc404.setERC721TransferExempt(user.address, true);
       
-      await erc404.transfer(user.address, ethers.parseEther("2"));
+      await erc404.transfer(user.address, ethers.parseEther("2000000"));
       const ownedTokens = await erc404.owned(user.address);
       //console.log(ownedTokens.length);
       expect(ownedTokens.length).to.equal(0); // NFT 생성 안 됨 - 보유 Token 0개
@@ -83,7 +83,7 @@ describe("ERC404Token", function () {
   describe("메타데이터 기능", function () {
     it("토큰 ID 기반 메타데이터 생성", async function () {
       const { erc404, owner, user } = await loadFixture(deployERC404Fixture);
-      await erc404.transfer(user.address, ethers.parseEther("2"));
+      await erc404.transfer(user.address, ethers.parseEther("2000000"));
 
       const ownedTokens = await erc404.owned(user.address);
       //console.log(ownedTokens);
