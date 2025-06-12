@@ -30,7 +30,7 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-//      blockGasLimit: 100_000_000, // Maximum gas limit per block
+      blockGasLimit: 100_000_000, // Maximum gas limit per block
 //      gas: 10_000_000,            // Default gas limit per transaction
       allowUnlimitedContractSize: true, // Allow unlimited contract size
     },
