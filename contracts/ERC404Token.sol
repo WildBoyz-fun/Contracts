@@ -28,7 +28,7 @@ contract ERC404Token is Ownable, ERC404U16 {
     string memory trait_type_,
     string[5] memory trait_values_,
     string[5] memory images_
-  ) ERC404U16(name_, symbol_, 23) Ownable(initialOwner_) {
+  ) ERC404U16(name_, symbol_, 24) Ownable(initialOwner_) {
     // Do not mint the ERC721s to the initial owner, as it's a waste of gas.
     _setERC721TransferExempt(initialMintRecipient_, true);
     _mintERC20(initialMintRecipient_, initialSupply_);
