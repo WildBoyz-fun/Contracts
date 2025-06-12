@@ -140,8 +140,8 @@ contract ERC404Token is Ownable, ERC404U16 {
             )
           ),
           string.concat(
-            '","description":"A collection of 10,000 Replicants enabled by ERC404, an experimental token standard.",',
-            '"external_url":"https://impact4.fun","image":"')
+            '","description":"A collection of 1,000 Replicants enabled by ERC404, an experimental token standard.",',
+            '"external_url":"https://oops4.fun/","image":"')
         ),
         string.concat(dataURI, image)
       );
