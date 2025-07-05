@@ -22,6 +22,9 @@
 **Compile:** 
 > npx hardhat compile  
 
+**Deploy (Monad_Testnet):** 
+> npx hardhat ignition deploy ignition/modules/DeployContracts.js --network monad_testnet
+
 **Deploy (Blast_Sepolia):** 
 > npx hardhat ignition deploy ignition/modules/ReferralThrones.js --network blast_sepolia
 

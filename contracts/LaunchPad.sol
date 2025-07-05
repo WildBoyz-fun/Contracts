@@ -6,6 +6,7 @@ import {ERC404Token} from "./ERC404Token.sol";
 import "./libs/MaxGasPrice.sol";
 import "./BondingCurve.sol";
 import "./TokenTreasury.sol";
+import "./LiquidityProvider.sol";
 
 import {IOwnerGroupContract} from "./libs/IOwnerGroupContract.sol";
 
@@ -14,6 +15,7 @@ contract LaunchPad is MaxGasPrice {
     IERC404 private _tokenContract;
     BondingCurve private _bondingCurveContract;
     IOwnerGroupContract private _ownerGroupContract;    
+    LiquidityProvider private _liquidityProviderContract;
 
     address private _treasuryAddress;
     uint256 public totalContractCount;
@@ -39,12 +41,17 @@ contract LaunchPad is MaxGasPrice {
     );
     // Event to log ETH received
     event Received(address sender, uint amount);
+    event SaleEnded(address contractAddress, uint256 contractTotalSupply, uint256 targetFundRasingAmount);
+    event SuppliedLP(
+        address indexed contractAddress,
+        uint256 tokenAmount,
+        uint256 ethAmount
+    );
 
     modifier onlyDeployed(address contractAddress) {
         require(deployedContracts[contractAddress], "CND");
         _;
     }
-
 
     modifier onlyOwnerGroup (){
         require(_ownerGroupContract.isOwner(msg.sender), "Only Owner have a permission.");
@@ -67,22 +74,8 @@ contract LaunchPad is MaxGasPrice {
         _ownerGroupContract = IOwnerGroupContract(ownerGroupContract);
     }
 
-    // function createTokenTreasury(address[] memory tokenOwners) private returns (address) {
-        
-    //     //Fixed : 0.001 Eth (수수료) 구현 필요
-
-    //     TokenTreasury tokenTreasury = new TokenTreasury(tokenOwners);
-    //     return address(tokenTreasury);
-    // }
-
     function createBioDiversityERC404Token(address tokenTreasuryAddress, uint256 totalSupply, string memory symbol, string memory name, uint256 taxPermil, 
         string memory imageURI_, string memory trait_type_, string[5] memory trait_values_, string[5] memory images_) public returns (address) {
-    // function createBioDiversityERC404Token(string memory name, string memory symbol, uint256 totalSupply) public returns (address) {
-
-            
-        // 404토큰 트레저리 생성 - 1개만 생성(404 모든 토큰 포함), ERC404 Token Interface(Transfer), ETH Withdrawal, DAO (Owners), Voting(?)
-        // 404 token treasury : 초기 텍스 404 토큰으로 수령, 이후 DEX에서 ETH로 Swap (LaunchPad가 Owner or Owner Group(multisig transfer))
-        // address tokenTreasuryAddress = createTokenTreasury(tokenTreasuryOwners);
         
         // 토큰 생성
         ERC404Token newContract = new ERC404Token(name, symbol, totalSupply, address(this), address(this), tokenTreasuryAddress, taxPermil, imageURI_, trait_type_, trait_values_, images_);
@@ -129,14 +122,6 @@ contract LaunchPad is MaxGasPrice {
         return _bondingCurveContract.calculatePurchaseBalance(contractsTotalSupply[contractAddress], contractsEthDepositBalance[contractAddress], tokenAmountToPurchase);
     }
 
-    function approveSpender(address tokenAddress, address spender, uint256 amount) public returns (bool) {
-        return IERC404(tokenAddress).approve(spender, amount);
-    }
-
-    function getAllowance(address tokenAddress, address spender) external view returns (uint256) {
-        return IERC404(tokenAddress).allowance(address(this), spender);
-    }
-
     function buyToken(address contractAddress) public payable validGasPrice returns (uint256) {
         // contract sale not active (SNA)
         require(getContractSaleStatus(contractAddress), "SNA");
@@ -152,8 +137,6 @@ contract LaunchPad is MaxGasPrice {
         
         uint256 amount = _bondingCurveContract.calculatePurchaseReturn(contractsTotalSupply[contractAddress], contractsEthDepositBalance[contractAddress], deposit);
 
-        // amount = amount / (10 ** 18);
-
         require(_tokenContract.balanceOf(address(this)) >= amount, "not enough balance");
     
         _tokenContract.transfer(msg.sender, amount);
@@ -167,10 +150,10 @@ contract LaunchPad is MaxGasPrice {
 
         //event require(amount >= (8억 - contractsTotalSupply[contractAddress] + (+/- 오차))))) 허용, 토큰 남은건 DEX로, 이더는 15% LaunchPad로
         if (contractsTotalSupply[contractAddress] >= targetFundRasingAmount) {
-            // endSale(contractAddress);
-            // emit SaleEnded(contractAddress);         
-
-            // 졸업 실행 go to dex(실행은 미정)
+            // 여기서 실행할 경우 DEX 로 보내면 ETH가 소모되기 때문에 별도 함수에서 관리자가 수행하는게 맞음
+            // contract 를 판매 종료하여 buy / sell 함수 호출을 revert 하도록 함.
+            contractSaleStatus[contractAddress] = !contractSaleStatus[contractAddress];
+            emit SaleEnded(contractAddress, contractsTotalSupply[contractAddress], targetFundRasingAmount);                       
         }
 
         return amount;
@@ -212,5 +195,17 @@ contract LaunchPad is MaxGasPrice {
         require(success, "ETF");
     }
 
+    function setLiquidityProviderContract(address lpProviderAddress) external onlyOwnerGroup() {
+        require(lpProviderAddress != address(0), "Invalid address");        
+        _liquidityProviderContract = LiquidityProvider(payable(lpProviderAddress));
+    }
+
+    function addLiquidityETH(address contractAddress, uint256 tokenAmount, uint256 ethAmount) external onlyOwnerGroup {
+        require(address(_liquidityProviderContract) != address(0), "LPCNA");
+        require(deployedContracts[contractAddress], "CND");
+
+        _liquidityProviderContract.addLiquidityETH(contractAddress, tokenAmount, ethAmount);
+        emit SuppliedLP(contractAddress, tokenAmount, ethAmount);
+    }
 
 }
