@@ -17,19 +17,25 @@ contract LaunchPad is MaxGasPrice {
     IOwnerGroupContract private _ownerGroupContract;    
     LiquidityProvider private _liquidityProviderContract;
 
+    struct ContractInfo {
+        address deployedBy;
+        bool saleIsActive;     // sale or not sale
+        uint256 maxSupply;   // Max supply token amount
+        uint256 totalSupply;   // bonding curve parameters: Total supply(sold) token amount
+        uint256 ethDepositBalance; // bonding curve parameters: Total ETH amount from token supply(Sold)
+        bool exists;
+    }
+
     address private _treasuryAddress;
     uint256 public totalContractCount;
+    address[] public launchedTokenContracts;
+    mapping(address => address[]) public userDeployedContracts;
+
     uint256 targetFundRasingAmount = 800_000_000 * 10 ** 18;
     // buy / sell eth fee %
     uint8 public _feeRate = 1;
 
-    mapping(address => bool) public deployedContracts;
-    // sale or not sale
-    mapping(address => bool) public contractSaleStatus;
-
-    // bonding curve parameters
-    mapping(address => uint256) private contractsTotalSupply;
-    mapping(address => uint256) private contractsEthDepositBalance;
+    mapping(address => ContractInfo) public contractInfo;
 
     // events
     event TokensPurchased(address indexed buyer, uint256 amount);
@@ -49,11 +55,11 @@ contract LaunchPad is MaxGasPrice {
     );
 
     modifier onlyDeployed(address contractAddress) {
-        require(deployedContracts[contractAddress], "CND");
+        require(contractInfo[contractAddress].exists, "CND"); // Contract Not Deployed
         _;
     }
 
-    modifier onlyOwnerGroup (){
+    modifier onlyOwnerGroup () {
         require(_ownerGroupContract.isOwner(msg.sender), "Only Owner have a permission.");
         _;
     }
@@ -74,58 +80,64 @@ contract LaunchPad is MaxGasPrice {
         _ownerGroupContract = IOwnerGroupContract(ownerGroupContract);
     }
 
-    function createBioDiversityERC404Token(address tokenTreasuryAddress, uint256 totalSupply, string memory symbol, string memory name, uint256 taxPermil, 
+    function createBioDiversityERC404Token(address tokenTreasuryAddress, uint256 maxSupply, string memory symbol, string memory name, uint256 taxPermil, 
         string memory imageURI_, string memory trait_type_, string[5] memory trait_values_, string[5] memory images_) public returns (address) {
         
         // 토큰 생성
-        ERC404Token newContract = new ERC404Token(name, symbol, totalSupply, address(this), address(this), tokenTreasuryAddress, taxPermil, imageURI_, trait_type_, trait_values_, images_);
+        ERC404Token newContract = new ERC404Token(name, symbol, maxSupply, address(this), address(this), tokenTreasuryAddress, taxPermil, imageURI_, trait_type_, trait_values_, images_);
     
         address contractAddress = address(newContract); 
         
         // Already Deployed (AD)
-        require(!deployedContracts[contractAddress], "AD");
+        require(!contractInfo[contractAddress].exists, "AD");
 
-        deployedContracts[contractAddress] = true;
-        contractSaleStatus[contractAddress] = true;
+        contractInfo[contractAddress] = ContractInfo({
+            deployedBy: msg.sender,
+            saleIsActive: true,
+            maxSupply: maxSupply,
+            totalSupply: 0,
+            ethDepositBalance: 0,
+            exists: true
+        });
+
         totalContractCount++;
+        launchedTokenContracts.push(contractAddress);
+        userDeployedContracts[msg.sender].push(contractAddress);
         
-        // bondingCurveContract contract별 token 공급량
-        contractsTotalSupply[contractAddress] = 0;
-        // bondingCurveContract contract별 eth 예치양
-        contractsEthDepositBalance[contractAddress] = 0;
-
         // Emit event for tracking
         emit ContractDeployed(contractAddress, msg.sender, symbol);
     
         return (contractAddress);
     }
 
-    function getContractEthBalance(address contractAddress ) external view returns (uint256) {
-        return contractsEthDepositBalance[contractAddress];
+    function getContractEthBalance(address contractAddress) external view returns (uint256) {
+        return contractInfo[contractAddress].ethDepositBalance;
     }
 
-    function getContractTotalSupplyBalance(address contractAddress ) external view returns (uint256) {
-        return contractsTotalSupply[contractAddress];
+    function getContractTotalSupplyBalance(address contractAddress) external view returns (uint256) {
+        return contractInfo[contractAddress].totalSupply;
     }
 
     function changeContractSaleStatus(address contractAddress) public onlyOwnerGroup onlyDeployed(contractAddress) returns (bool) {
-        contractSaleStatus[contractAddress] = !contractSaleStatus[contractAddress];    
-        return contractSaleStatus[contractAddress];
+        contractInfo[contractAddress].saleIsActive = !contractInfo[contractAddress].saleIsActive;
+        return contractInfo[contractAddress].saleIsActive;
     }
 
     function getContractSaleStatus(address contractAddress) public view onlyDeployed(contractAddress) returns (bool) {
-        return contractSaleStatus[contractAddress];
+        return contractInfo[contractAddress].saleIsActive;
     }
 
     // 사고싶은 토큰 수량에 맞는 이더 수량 Return
     function calculatePurchaseBalance(address contractAddress, uint256 tokenAmountToPurchase) external view onlyDeployed(contractAddress) returns (uint256) {
-        return _bondingCurveContract.calculatePurchaseBalance(contractsTotalSupply[contractAddress], contractsEthDepositBalance[contractAddress], tokenAmountToPurchase);
+        ContractInfo storage info = contractInfo[contractAddress];
+        return _bondingCurveContract.calculatePurchaseBalance(info.totalSupply, info.ethDepositBalance, tokenAmountToPurchase);
     }
 
     function buyToken(address contractAddress) public payable validGasPrice returns (uint256) {
+        ContractInfo storage info = contractInfo[contractAddress];
         // contract sale not active (SNA)
-        require(getContractSaleStatus(contractAddress), "SNA");
-        require(contractsTotalSupply[contractAddress] < targetFundRasingAmount, "TFR");
+        require(info.saleIsActive, "SNA");
+        require(info.totalSupply < targetFundRasingAmount, "TFR");
 
         _tokenContract = IERC404(contractAddress);
         // eth
@@ -135,7 +147,7 @@ contract LaunchPad is MaxGasPrice {
         deposit =  msg.value / (100 + _feeRate) * 100;
         require(deposit > 0, "Amount must be non-zero!");
         
-        uint256 amount = _bondingCurveContract.calculatePurchaseReturn(contractsTotalSupply[contractAddress], contractsEthDepositBalance[contractAddress], deposit);
+        uint256 amount = _bondingCurveContract.calculatePurchaseReturn(info.totalSupply, info.ethDepositBalance, deposit);
 
         require(_tokenContract.balanceOf(address(this)) >= amount, "not enough balance");
     
@@ -144,37 +156,37 @@ contract LaunchPad is MaxGasPrice {
         emit TokensPurchased(msg.sender, amount);
 
         // contract 누적 token 집계
-        contractsTotalSupply[contractAddress] += amount;
+        info.totalSupply += amount;
         // contract 누적 eth 집계
-        contractsEthDepositBalance[contractAddress] += deposit;
+        info.ethDepositBalance += deposit;
 
         //event require(amount >= (8억 - contractsTotalSupply[contractAddress] + (+/- 오차))))) 허용, 토큰 남은건 DEX로, 이더는 15% LaunchPad로
-        if (contractsTotalSupply[contractAddress] >= targetFundRasingAmount) {
+        if (info.totalSupply >= targetFundRasingAmount) {
             // 여기서 실행할 경우 DEX 로 보내면 ETH가 소모되기 때문에 별도 함수에서 관리자가 수행하는게 맞음
             // contract 를 판매 종료하여 buy / sell 함수 호출을 revert 하도록 함.
-            contractSaleStatus[contractAddress] = !contractSaleStatus[contractAddress];
-            emit SaleEnded(contractAddress, contractsTotalSupply[contractAddress], targetFundRasingAmount);                       
+            info.saleIsActive = false;
+            emit SaleEnded(contractAddress, info.totalSupply, targetFundRasingAmount);                       
         }
 
         return amount;
     }
 
     function sellToken(address contractAddress, uint256 amount) validGasPrice public {
-
-        require(getContractSaleStatus(contractAddress), "SNA");
+        ContractInfo storage info = contractInfo[contractAddress];
+        require(info.saleIsActive, "SNA");
         require(amount > 0, "Amount must be non-zero!");
 
         _tokenContract = IERC404(contractAddress);
 
         require(_tokenContract.balanceOf(msg.sender) >= amount, "Sender does not have enough tokens to sell.");
         
-        uint256 deposit = _bondingCurveContract.calculateSaleReturn(contractsTotalSupply[contractAddress], contractsEthDepositBalance[contractAddress], amount);
+        uint256 deposit = _bondingCurveContract.calculateSaleReturn(info.totalSupply, info.ethDepositBalance, amount);
 
         // 1% fee 차감
         deposit = (deposit * (100 - _feeRate)) / 100;
 
-        contractsEthDepositBalance[contractAddress] -= deposit;
-        contractsTotalSupply[contractAddress] -= amount;
+        info.ethDepositBalance -= deposit;
+        info.totalSupply -= amount;
 
         // approve call first before using transferFrom
         _tokenContract.transferFrom(msg.sender, address(this), amount);        
@@ -186,6 +198,14 @@ contract LaunchPad is MaxGasPrice {
 
     function getLaunchedContractCount() external view returns (uint256) {
         return totalContractCount;
+    }
+
+    function getLaunchedTokenContracts() external view returns (address[] memory) {
+        return launchedTokenContracts;
+    }
+
+    function getContractsDeployedBy(address deployer) external view returns (address[] memory) {
+        return userDeployedContracts[deployer];
     }
 
     function sendEthToTreasury(uint256 amount) external onlyOwnerGroup {
@@ -202,7 +222,7 @@ contract LaunchPad is MaxGasPrice {
 
     function addLiquidityETH(address contractAddress, uint256 tokenAmount, uint256 ethAmount) external onlyOwnerGroup {
         require(address(_liquidityProviderContract) != address(0), "LPCNA");
-        require(deployedContracts[contractAddress], "CND");
+        require(contractInfo[contractAddress].exists, "CND");
 
         _liquidityProviderContract.addLiquidityETH(contractAddress, tokenAmount, ethAmount);
         emit SuppliedLP(contractAddress, tokenAmount, ethAmount);
