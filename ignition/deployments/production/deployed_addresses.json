@@ -1,0 +1,6 @@
+{
+  "BondingCurveModule#BondingCurve": "0x16be7e1b2E15dE00BfEdC6Eb61C1e3e4df37C091",
+  "OwnerGroupModule#OwnerGroupContract": "0xC88e51b7BE42Acdb974a0AAE11Ebe38FE5aa95BB",
+  "TokenTreasuryModule#TokenTreasury": "0xc87Db7441C9FEaa47466B2733d6c165676480a1F",
+  "LaunchPadModule#LaunchPad": "0xDB2A7E40Aa6abC9561aA854788f8EDAb0Eefd960"
+}

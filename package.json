@@ -2,12 +2,14 @@
   "name": "hardhat-project",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@openzeppelin/hardhat-upgrades": "^3.0.0",
     "hardhat": "^2.22.19"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.3.0",
     "@uniswap/v2-core": "^1.0.1",
     "@uniswap/v2-periphery": "^1.1.0-beta.0",
+    "dotenv": "^16.0.0",
     "ethers": "^6.13.5"
   },
   "version": "1.0.0",
@@ -16,7 +18,10 @@
     "test": "test"
   },
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+    "compile": "hardhat compile",
+    "deploy:monad": "hardhat ignition deploy ignition/modules/DeployContract.ts --network monad_testnet --deployment-id production",
+    "verify:monad": "hardhat verify --network monad_testnet"
   },
   "keywords": [],
   "author": "",
