@@ -93,14 +93,36 @@ contract ReferralTracker {
 
         emit ReferralRegistered(msg.sender, referrer);
 
-        // 계정 생성 보상 기록
-        recordReferral(ActivityType.ACCOUNT_CREATION, msg.sender);
+        // 계정 생성 보상 기록 (내부 함수 사용)
+        _recordReferralInternal(ActivityType.ACCOUNT_CREATION, msg.sender);
     }
 
     // 포인트 적립(활동에 따른 추천인, 피추천인 포인트 등록, 추천인이 없으면 피추천인만 적립)
     // user가 활동을 할 때마다 호출
     // 예: 토큰 구매, 판매 등
     function recordReferral(ActivityType activityType, address user) public onlyAuthorized {
+        PointRewardConfig memory config = rewardConfigs[activityType];
+
+        address referrer = referrers[user];
+        if (referrer != address(0) && config.referrerReward != 0) {
+            referralHistory[referrer].push(
+                ReferralActivity(activityType, config.referrerReward, block.timestamp)
+            );
+            totalPoints[referrer] += config.referrerReward;
+            emit ReferralRecorded(referrer, activityType, config.referrerReward, block.timestamp);
+        }
+
+        if (config.refereeReward != 0) {
+            referralHistory[user].push(
+                ReferralActivity(activityType, config.refereeReward, block.timestamp)
+            );
+            totalPoints[user] += config.refereeReward;
+            emit ReferralRecorded(user, activityType, config.refereeReward, block.timestamp);
+        }
+    }
+
+    // 내부 함수: 권한 체크 없이 포인트 기록 (컨트랙트 내부에서만 사용)
+    function _recordReferralInternal(ActivityType activityType, address user) internal {
         PointRewardConfig memory config = rewardConfigs[activityType];
 
         address referrer = referrers[user];
