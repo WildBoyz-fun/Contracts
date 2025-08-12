@@ -26,9 +26,21 @@ contract LaunchPad is MaxGasPrice {
         bool exists;
     }
 
+    struct TokenInfo {
+        address contractAddress;
+        address deployedBy;
+        string symbol;
+        string name;
+        string imageURI;
+        uint256 maxSupply;
+        uint256 totalSupply;
+        bool saleIsActive;
+    }
+
     address private _treasuryAddress;
     uint256 public totalContractCount;
     address[] public launchedTokenContracts;
+    TokenInfo[] public launchedTokens;
     mapping(address => address[]) public userDeployedContracts;
 
     uint256 targetFundRasingAmount = 800_000_000 * 10 ** 18;
@@ -103,6 +115,18 @@ contract LaunchPad is MaxGasPrice {
         totalContractCount++;
         launchedTokenContracts.push(contractAddress);
         userDeployedContracts[msg.sender].push(contractAddress);
+        
+        // Add TokenInfo to the new array
+        launchedTokens.push(TokenInfo({
+            contractAddress: contractAddress,
+            deployedBy: msg.sender,
+            symbol: symbol,
+            name: name,
+            imageURI: imageURI_,
+            maxSupply: maxSupply,
+            totalSupply: 0,
+            saleIsActive: true
+        }));
         
         // Emit event for tracking
         emit ContractDeployed(contractAddress, msg.sender, symbol);
@@ -206,6 +230,59 @@ contract LaunchPad is MaxGasPrice {
 
     function getContractsDeployedBy(address deployer) external view returns (address[] memory) {
         return userDeployedContracts[deployer];
+    }
+
+    function getLatestTokens(uint256 count) external view returns (TokenInfo[] memory) {
+        uint256 totalTokens = launchedTokens.length;
+        if (totalTokens == 0) {
+            return new TokenInfo[](0);
+        }
+        
+        uint256 returnCount = count > totalTokens ? totalTokens : count;
+        TokenInfo[] memory result = new TokenInfo[](returnCount);
+        
+        // Return tokens in reverse order (latest first)
+        for (uint256 i = 0; i < returnCount; i++) {
+            uint256 index = totalTokens - 1 - i;
+            TokenInfo storage tokenInfo = launchedTokens[index];
+            
+            // Update the totalSupply and saleIsActive from contractInfo
+            result[i] = TokenInfo({
+                contractAddress: tokenInfo.contractAddress,
+                deployedBy: tokenInfo.deployedBy,
+                symbol: tokenInfo.symbol,
+                name: tokenInfo.name,
+                imageURI: tokenInfo.imageURI,
+                maxSupply: tokenInfo.maxSupply,
+                totalSupply: contractInfo[tokenInfo.contractAddress].totalSupply,
+                saleIsActive: contractInfo[tokenInfo.contractAddress].saleIsActive
+            });
+        }
+        
+        return result;
+    }
+
+    function getAllTokens() external view returns (TokenInfo[] memory) {
+        uint256 totalTokens = launchedTokens.length;
+        TokenInfo[] memory result = new TokenInfo[](totalTokens);
+        
+        for (uint256 i = 0; i < totalTokens; i++) {
+            TokenInfo storage tokenInfo = launchedTokens[i];
+            
+            // Update the totalSupply and saleIsActive from contractInfo
+            result[i] = TokenInfo({
+                contractAddress: tokenInfo.contractAddress,
+                deployedBy: tokenInfo.deployedBy,
+                symbol: tokenInfo.symbol,
+                name: tokenInfo.name,
+                imageURI: tokenInfo.imageURI,
+                maxSupply: tokenInfo.maxSupply,
+                totalSupply: contractInfo[tokenInfo.contractAddress].totalSupply,
+                saleIsActive: contractInfo[tokenInfo.contractAddress].saleIsActive
+            });
+        }
+        
+        return result;
     }
 
     function sendEthToTreasury(uint256 amount) external onlyOwnerGroup {
