@@ -26,6 +26,18 @@ contract LaunchPad is MaxGasPrice {
         bool exists;
     }
 
+    struct TokenInfo {
+        address contractAddress;
+        address deployedBy;
+        string name;
+        string symbol;
+        string imageURI;
+        uint256 maxSupply;
+        uint256 totalSupply;
+        uint256 ethDepositBalance;
+        bool saleIsActive;
+    }
+
     address private _treasuryAddress;
     uint256 public totalContractCount;
     address[] public launchedTokenContracts;
@@ -36,6 +48,7 @@ contract LaunchPad is MaxGasPrice {
     uint8 public _feeRate = 1;
 
     mapping(address => ContractInfo) public contractInfo;
+    mapping(address => TokenInfo) public tokenInfo;
 
     // events
     event TokensPurchased(address indexed buyer, uint256 amount);
@@ -100,6 +113,18 @@ contract LaunchPad is MaxGasPrice {
             exists: true
         });
 
+        tokenInfo[contractAddress] = TokenInfo({
+            contractAddress: contractAddress,
+            deployedBy: msg.sender,
+            name: name,
+            symbol: symbol,
+            imageURI: imageURI_,
+            maxSupply: maxSupply,
+            totalSupply: 0,
+            ethDepositBalance: 0,
+            saleIsActive: true
+        });
+
         totalContractCount++;
         launchedTokenContracts.push(contractAddress);
         userDeployedContracts[msg.sender].push(contractAddress);
@@ -160,11 +185,16 @@ contract LaunchPad is MaxGasPrice {
         // contract 누적 eth 집계
         info.ethDepositBalance += deposit;
 
+        // tokenInfo도 업데이트
+        tokenInfo[contractAddress].totalSupply += amount;
+        tokenInfo[contractAddress].ethDepositBalance += deposit;
+
         //event require(amount >= (8억 - contractsTotalSupply[contractAddress] + (+/- 오차))))) 허용, 토큰 남은건 DEX로, 이더는 15% LaunchPad로
         if (info.totalSupply >= targetFundRasingAmount) {
             // 여기서 실행할 경우 DEX 로 보내면 ETH가 소모되기 때문에 별도 함수에서 관리자가 수행하는게 맞음
             // contract 를 판매 종료하여 buy / sell 함수 호출을 revert 하도록 함.
             info.saleIsActive = false;
+            tokenInfo[contractAddress].saleIsActive = false;
             emit SaleEnded(contractAddress, info.totalSupply, targetFundRasingAmount);                       
         }
 
@@ -188,6 +218,10 @@ contract LaunchPad is MaxGasPrice {
         info.ethDepositBalance -= deposit;
         info.totalSupply -= amount;
 
+        // tokenInfo도 업데이트
+        tokenInfo[contractAddress].ethDepositBalance -= deposit;
+        tokenInfo[contractAddress].totalSupply -= amount;
+
         // approve call first before using transferFrom
         _tokenContract.transferFrom(msg.sender, address(this), amount);        
 
@@ -202,6 +236,51 @@ contract LaunchPad is MaxGasPrice {
 
     function getLaunchedTokenContracts() external view returns (address[] memory) {
         return launchedTokenContracts;
+    }
+
+    function getTokenInfoBatch(uint256 start, uint256 limit) external view returns (TokenInfo[] memory) {
+        require(start < launchedTokenContracts.length, "Start index out of bounds");
+        
+        uint256 end = start + limit;
+        if (end > launchedTokenContracts.length) {
+            end = launchedTokenContracts.length;
+        }
+        
+        uint256 length = end - start;
+        TokenInfo[] memory result = new TokenInfo[](length);
+        
+        for (uint256 i = 0; i < length; i++) {
+            address tokenAddress = launchedTokenContracts[start + i];
+            result[i] = tokenInfo[tokenAddress];
+        }
+        
+        return result;
+    }
+
+    function getLatestTokens(uint256 count) external view returns (TokenInfo[] memory) {
+        if (launchedTokenContracts.length == 0) {
+            return new TokenInfo[](0);
+        }
+        
+        uint256 actualCount = count;
+        if (actualCount > launchedTokenContracts.length) {
+            actualCount = launchedTokenContracts.length;
+        }
+        
+        TokenInfo[] memory result = new TokenInfo[](actualCount);
+        uint256 startIndex = launchedTokenContracts.length - actualCount;
+        
+        for (uint256 i = 0; i < actualCount; i++) {
+            address tokenAddress = launchedTokenContracts[startIndex + i];
+            result[actualCount - 1 - i] = tokenInfo[tokenAddress]; // 최신순으로 정렬
+        }
+        
+        return result;
+    }
+
+    function getTokenInfo(address contractAddress) external view returns (TokenInfo memory) {
+        require(contractInfo[contractAddress].exists, "Token does not exist");
+        return tokenInfo[contractAddress];
     }
 
     function getContractsDeployedBy(address deployer) external view returns (address[] memory) {
