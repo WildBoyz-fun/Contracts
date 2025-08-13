@@ -26,9 +26,16 @@ contract LaunchPad is MaxGasPrice {
         bool exists;
     }
 
+    struct TokenInfo {
+        address tokenAddress;
+        string symbol;
+        string name;
+        string mainImage;
+    }
+
     address private _treasuryAddress;
     uint256 public totalContractCount;
-    address[] public launchedTokenContracts;
+    TokenInfo[] public launchedTokenContracts;
     mapping(address => address[]) public userDeployedContracts;
 
     uint256 targetFundRasingAmount = 800_000_000 * 10 ** 18;
@@ -101,7 +108,12 @@ contract LaunchPad is MaxGasPrice {
         });
 
         totalContractCount++;
-        launchedTokenContracts.push(contractAddress);
+        launchedTokenContracts.push(TokenInfo({
+            tokenAddress: contractAddress,
+            symbol: symbol,
+            name: name,
+            mainImage: imageURI_
+        }));
         userDeployedContracts[msg.sender].push(contractAddress);
         
         // Emit event for tracking
@@ -200,8 +212,22 @@ contract LaunchPad is MaxGasPrice {
         return totalContractCount;
     }
 
-    function getLaunchedTokenContracts() external view returns (address[] memory) {
+    function getLaunchedTokenContracts() external view returns (TokenInfo[] memory) {
         return launchedTokenContracts;
+    }
+
+    function getLaunchedTokenAddresses() external view returns (address[] memory) {
+        address[] memory addresses = new address[](launchedTokenContracts.length);
+        for (uint i = 0; i < launchedTokenContracts.length; i++) {
+            addresses[i] = launchedTokenContracts[i].tokenAddress;
+        }
+        return addresses;
+    }
+
+    function getTokenInfo(uint256 index) external view returns (address tokenAddress, string memory symbol, string memory mainImage) {
+        require(index < launchedTokenContracts.length, "Index out of bounds");
+        TokenInfo memory tokenInfo = launchedTokenContracts[index];
+        return (tokenInfo.tokenAddress, tokenInfo.symbol, tokenInfo.mainImage);
     }
 
     function getContractsDeployedBy(address deployer) external view returns (address[] memory) {
