@@ -2,5 +2,6 @@
   "BondingCurveModule#BondingCurve": "0xda4d06cB7b0a7089569F51a30276Fd7B612c42F7",
   "OwnerGroupModule#OwnerGroupContract": "0x735F24B0c07A57e101AeeDA8b33E28B6bCEEA263",
   "TokenTreasuryModule#TokenTreasury": "0xE659bf63dCC36cf087b4B3fd3268A1DC044a942B",
-  "LaunchPadModule#LaunchPad": "0x43070eF1324AAe2C914263C8e097366CF8e002D2"
+  "LaunchPadModule#LaunchPad": "0x43070eF1324AAe2C914263C8e097366CF8e002D2",
+  "ReferralTrackerModule#ReferralTracker": "0x3890ACdb4359ad538EA04879240D1b40Ae619ADE"
 }
