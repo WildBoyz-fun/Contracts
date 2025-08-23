@@ -45,8 +45,18 @@ contract LaunchPad is MaxGasPrice {
     mapping(address => ContractInfo) public contractInfo;
 
     // events
-    event TokensPurchased(address indexed buyer, uint256 amount);
-    event TokenSold(address indexed buyer, uint256 amount);
+    event TokensPurchased(
+        address indexed tokenAddress,
+        address indexed buyer,
+        uint256 amount,
+        uint256 price
+    );
+    event TokenSold(
+        address indexed tokenAddress,
+        address indexed seller,
+        uint256 amount,
+        uint256 price
+    );
     event ContractDeployed(
         address indexed contractAddress,
         address indexed deployedBy,
@@ -164,13 +174,15 @@ contract LaunchPad is MaxGasPrice {
         require(_tokenContract.balanceOf(address(this)) >= amount, "not enough balance");
     
         _tokenContract.transfer(msg.sender, amount);
-        
-        emit TokensPurchased(msg.sender, amount);
 
         // contract 누적 token 집계
         info.totalSupply += amount;
         // contract 누적 eth 집계
         info.ethDepositBalance += deposit;
+
+        uint256 currentPrice = _bondingCurveContract.calculatePurchaseBalance(info.totalSupply, info.ethDepositBalance, 1 * (10 ** 18));
+
+        emit TokensPurchased(contractAddress, msg.sender, amount, currentPrice);
 
         //event require(amount >= (8억 - contractsTotalSupply[contractAddress] + (+/- 오차))))) 허용, 토큰 남은건 DEX로, 이더는 15% LaunchPad로
         if (info.totalSupply >= targetFundRasingAmount) {
@@ -201,9 +213,11 @@ contract LaunchPad is MaxGasPrice {
         info.totalSupply -= amount;
 
         // approve call first before using transferFrom
-        _tokenContract.transferFrom(msg.sender, address(this), amount);        
+        _tokenContract.transferFrom(msg.sender, address(this), amount);
 
-        emit TokenSold(msg.sender, amount);
+        uint256 currentPrice = _bondingCurveContract.calculatePurchaseBalance(info.totalSupply, info.ethDepositBalance, 1 * (10 ** 18));
+
+        emit TokenSold(contractAddress, msg.sender, amount, currentPrice);
         
         payable(msg.sender).transfer(deposit);
     }
