@@ -313,7 +313,7 @@ describe("LaunchPad", function () {
             // Assert event emitted
             const buyEvent = buyReceipt?.logs
             .map(log => launchPad.interface.parseLog(log))
-            .find(e => e?.name === "TokensPurchased");
+            .find(e => e?.name === "TokenPurchased");
 
             const launchPadTokenBalance2 = await erc404Token.erc20BalanceOf(await launchPad.getAddress());
             const buyerTokenBalance2 = await erc404Token.erc20BalanceOf(buyer.address);
@@ -363,7 +363,7 @@ describe("LaunchPad", function () {
             // Assert event emitted
             const buyEvent = buyReceipt?.logs
             .map(log => launchPad.interface.parseLog(log))
-            .find(e => e?.name === "TokensPurchased");
+            .find(e => e?.name === "TokenPurchased");
         
             const launchPadTokenBalance = await erc404Token.erc20BalanceOf(await launchPad.getAddress());
             const buyerTokenBalance = await erc404Token.erc20BalanceOf(buyer.address);
@@ -438,7 +438,7 @@ describe("LaunchPad", function () {
              // Assert event emitted
              const buyEvent = buyReceipt?.logs
              .map(log => launchPad.interface.parseLog(log))
-             .find(e => e?.name === "TokensPurchased");
+             .find(e => e?.name === "TokenPurchased");
 
             const amount = await launchPad.calculatePurchaseBalance(contractAddress, ethers.parseEther("0.01"));
 

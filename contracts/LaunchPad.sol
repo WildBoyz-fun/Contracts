@@ -45,7 +45,7 @@ contract LaunchPad is MaxGasPrice {
     mapping(address => ContractInfo) public contractInfo;
 
     // events
-    event TokensPurchased(
+    event TokenPurchased(
         address indexed tokenAddress,
         address indexed buyer,
         uint256 amount,
@@ -182,7 +182,7 @@ contract LaunchPad is MaxGasPrice {
 
         uint256 currentPrice = _bondingCurveContract.calculatePurchaseBalance(info.totalSupply, info.ethDepositBalance, 1 * (10 ** 18));
 
-        emit TokensPurchased(contractAddress, msg.sender, amount, currentPrice);
+        emit TokenPurchased(contractAddress, msg.sender, amount, currentPrice);
 
         //event require(amount >= (8억 - contractsTotalSupply[contractAddress] + (+/- 오차))))) 허용, 토큰 남은건 DEX로, 이더는 15% LaunchPad로
         if (info.totalSupply >= targetFundRasingAmount) {
