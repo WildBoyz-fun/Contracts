@@ -21,6 +21,12 @@
     "test": "mocha",
     "compile": "hardhat compile",
     "deploy:monad": "hardhat ignition deploy ignition/modules/DeployContract.ts --network monad_testnet --deployment-id production",
+    "deploy:upgradeable": "hardhat run scripts/deploy-upgradeable.ts",
+    "deploy:upgradeable:monad": "hardhat run scripts/deploy-upgradeable.ts --network monad_testnet",
+    "upgrade:launchpad": "hardhat run scripts/upgrade-launchpad.ts",
+    "upgrade:launchpad:monad": "hardhat run scripts/upgrade-launchpad.ts --network monad_testnet",
+    "verify:upgrade": "hardhat run scripts/verify-upgrade.ts",
+    "verify:upgrade:monad": "hardhat run scripts/verify-upgrade.ts --network monad_testnet",
     "verify:monad": "hardhat verify --network monad_testnet"
   },
   "keywords": [],

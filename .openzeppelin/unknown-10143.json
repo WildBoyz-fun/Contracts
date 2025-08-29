@@ -1,0 +1,341 @@
+{
+  "manifestVersion": "3.2",
+  "proxies": [
+    {
+      "address": "0x30A3D4408a4c09855203f8128b5a4cD42F5a5632",
+      "txHash": "0x459caf862e5726541d375c2e114436f1d7b05cc083e825c567e3ec52e6e7d93f",
+      "kind": "uups"
+    }
+  ],
+  "impls": {
+    "736e39ad9ddef5c62369565c926c9601541c4bb6fa612daecb5a4e21d66a8835": {
+      "address": "0x25cE202d414433358f613572b1c2D39137C222E3",
+      "txHash": "0x535d089a915c0f2921bcc3813e4cad5aa9d70323b7f0d8ad76337d5f77bad5b7",
+      "layout": {
+        "solcVersion": "0.8.28",
+        "storage": [
+          {
+            "label": "_tokenContract",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_contract(IERC404)18588",
+            "contract": "LaunchPadUpgradeable",
+            "src": "contracts/LaunchPadUpgradeable.sol:19"
+          },
+          {
+            "label": "_bondingCurveContract",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_contract(BondingCurve)8025",
+            "contract": "LaunchPadUpgradeable",
+            "src": "contracts/LaunchPadUpgradeable.sol:20"
+          },
+          {
+            "label": "_ownerGroupContract",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_contract(IOwnerGroupContract)18613",
+            "contract": "LaunchPadUpgradeable",
+            "src": "contracts/LaunchPadUpgradeable.sol:21"
+          },
+          {
+            "label": "_liquidityProviderContract",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_contract(LiquidityProvider)12693",
+            "contract": "LaunchPadUpgradeable",
+            "src": "contracts/LaunchPadUpgradeable.sol:22"
+          },
+          {
+            "label": "_treasuryAddress",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_address",
+            "contract": "LaunchPadUpgradeable",
+            "src": "contracts/LaunchPadUpgradeable.sol:40"
+          },
+          {
+            "label": "totalContractCount",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_uint256",
+            "contract": "LaunchPadUpgradeable",
+            "src": "contracts/LaunchPadUpgradeable.sol:41"
+          },
+          {
+            "label": "launchedTokenContracts",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_array(t_struct(TokenInfo)11587_storage)dyn_storage",
+            "contract": "LaunchPadUpgradeable",
+            "src": "contracts/LaunchPadUpgradeable.sol:42"
+          },
+          {
+            "label": "userDeployedContracts",
+            "offset": 0,
+            "slot": "7",
+            "type": "t_mapping(t_address,t_array(t_address)dyn_storage)",
+            "contract": "LaunchPadUpgradeable",
+            "src": "contracts/LaunchPadUpgradeable.sol:43"
+          },
+          {
+            "label": "targetFundRasingAmount",
+            "offset": 0,
+            "slot": "8",
+            "type": "t_uint256",
+            "contract": "LaunchPadUpgradeable",
+            "src": "contracts/LaunchPadUpgradeable.sol:45"
+          },
+          {
+            "label": "_feeRate",
+            "offset": 0,
+            "slot": "9",
+            "type": "t_uint8",
+            "contract": "LaunchPadUpgradeable",
+            "src": "contracts/LaunchPadUpgradeable.sol:46"
+          },
+          {
+            "label": "contractInfo",
+            "offset": 0,
+            "slot": "10",
+            "type": "t_mapping(t_address,t_struct(ContractInfo)11578_storage)",
+            "contract": "LaunchPadUpgradeable",
+            "src": "contracts/LaunchPadUpgradeable.sol:48"
+          },
+          {
+            "label": "_maxGasPrice",
+            "offset": 0,
+            "slot": "11",
+            "type": "t_uint256",
+            "contract": "LaunchPadUpgradeable",
+            "src": "contracts/LaunchPadUpgradeable.sol:51"
+          },
+          {
+            "label": "_exemptions",
+            "offset": 0,
+            "slot": "12",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "LaunchPadUpgradeable",
+            "src": "contracts/LaunchPadUpgradeable.sol:52"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)73_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)226_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_address)dyn_storage": {
+            "label": "address[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_struct(TokenInfo)11587_storage)dyn_storage": {
+            "label": "struct LaunchPadUpgradeable.TokenInfo[]",
+            "numberOfBytes": "32"
+          },
+          "t_contract(BondingCurve)8025": {
+            "label": "contract BondingCurve",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IERC404)18588": {
+            "label": "contract IERC404",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IOwnerGroupContract)18613": {
+            "label": "contract IOwnerGroupContract",
+            "numberOfBytes": "20"
+          },
+          "t_contract(LiquidityProvider)12693": {
+            "label": "contract LiquidityProvider",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_array(t_address)dyn_storage)": {
+            "label": "mapping(address => address[])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_struct(ContractInfo)11578_storage)": {
+            "label": "mapping(address => struct LaunchPadUpgradeable.ContractInfo)",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_struct(ContractInfo)11578_storage": {
+            "label": "struct LaunchPadUpgradeable.ContractInfo",
+            "members": [
+              {
+                "label": "deployedBy",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "saleIsActive",
+                "type": "t_bool",
+                "offset": 20,
+                "slot": "0"
+              },
+              {
+                "label": "maxSupply",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "totalSupply",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "ethDepositBalance",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "exists",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "4"
+              }
+            ],
+            "numberOfBytes": "160"
+          },
+          "t_struct(TokenInfo)11587_storage": {
+            "label": "struct LaunchPadUpgradeable.TokenInfo",
+            "members": [
+              {
+                "label": "tokenAddress",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "symbol",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "name",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "mainImage",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "3"
+              }
+            ],
+            "numberOfBytes": "128"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol:43",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
