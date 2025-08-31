@@ -155,6 +155,12 @@ contract LaunchPad is MaxGasPrice {
         return _bondingCurveContract.calculatePurchaseBalance(info.totalSupply, info.ethDepositBalance, tokenAmountToPurchase);
     }
 
+    // 사고싶은 이더 수량에 맞는 토큰 수량 Return
+    function calculatePurchaseReturn(address contractAddress, uint256 ethAmountToPay) external view onlyDeployed(contractAddress) returns (uint256) {
+        ContractInfo storage info = contractInfo[contractAddress];
+        return _bondingCurveContract.calculatePurchaseReturn(info.totalSupply, info.ethDepositBalance, ethAmountToPay);
+    }
+
     function buyToken(address contractAddress) public payable validGasPrice returns (uint256) {
         ContractInfo storage info = contractInfo[contractAddress];
         // contract sale not active (SNA)
