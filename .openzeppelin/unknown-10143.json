@@ -5,6 +5,11 @@
       "address": "0x30A3D4408a4c09855203f8128b5a4cD42F5a5632",
       "txHash": "0x459caf862e5726541d375c2e114436f1d7b05cc083e825c567e3ec52e6e7d93f",
       "kind": "uups"
+    },
+    {
+      "address": "0x86bFf87de374124B98fd57B53972cc88D40ee393",
+      "txHash": "0xad971bbefab86f423983665bfd8be6aa1f6a08a32b69c347d18d7b1edfe0be10",
+      "kind": "uups"
     }
   ],
   "impls": {
@@ -293,6 +298,254 @@
           "t_uint8": {
             "label": "uint8",
             "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol:43",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "7e92a89244025d405f05bdbc9e44af4c4910a4374593f23273fa5ad8aade222a": {
+      "address": "0xc7B171039e5E9419c5e1172EA6514a8183C46adB",
+      "txHash": "0xa25a0eee1cc13ec562d643a8449d455523d22309446d12ea4907c7b53b5fb25e",
+      "layout": {
+        "solcVersion": "0.8.28",
+        "storage": [
+          {
+            "label": "ownerGroup",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_contract(IOwnerGroup)1575",
+            "contract": "ReferralTrackerUpgradeable",
+            "src": "contracts/ReferralTrackerUpgradeable.sol:38"
+          },
+          {
+            "label": "rewardConfigs",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_mapping(t_enum(ActivityType)1587,t_struct(PointRewardConfig)1592_storage)",
+            "contract": "ReferralTrackerUpgradeable",
+            "src": "contracts/ReferralTrackerUpgradeable.sol:40"
+          },
+          {
+            "label": "referralHistory",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_mapping(t_address,t_array(t_struct(ReferralActivity)1600_storage)dyn_storage)",
+            "contract": "ReferralTrackerUpgradeable",
+            "src": "contracts/ReferralTrackerUpgradeable.sol:41"
+          },
+          {
+            "label": "totalPoints",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_mapping(t_address,t_int256)",
+            "contract": "ReferralTrackerUpgradeable",
+            "src": "contracts/ReferralTrackerUpgradeable.sol:42"
+          },
+          {
+            "label": "referrers",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_mapping(t_address,t_address)",
+            "contract": "ReferralTrackerUpgradeable",
+            "src": "contracts/ReferralTrackerUpgradeable.sol:43"
+          },
+          {
+            "label": "accountRegistered",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "ReferralTrackerUpgradeable",
+            "src": "contracts/ReferralTrackerUpgradeable.sol:44"
+          },
+          {
+            "label": "authorizedContracts",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "ReferralTrackerUpgradeable",
+            "src": "contracts/ReferralTrackerUpgradeable.sol:45"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)73_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)226_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_struct(ReferralActivity)1600_storage)dyn_storage": {
+            "label": "struct ReferralTrackerUpgradeable.ReferralActivity[]",
+            "numberOfBytes": "32"
+          },
+          "t_contract(IOwnerGroup)1575": {
+            "label": "contract IOwnerGroup",
+            "numberOfBytes": "20"
+          },
+          "t_enum(ActivityType)1587": {
+            "label": "enum ReferralTrackerUpgradeable.ActivityType",
+            "members": [
+              "ACCOUNT_CREATION",
+              "TOKEN_BUY",
+              "TOKEN_SELL"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_int256": {
+            "label": "int256",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_address)": {
+            "label": "mapping(address => address)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_array(t_struct(ReferralActivity)1600_storage)dyn_storage)": {
+            "label": "mapping(address => struct ReferralTrackerUpgradeable.ReferralActivity[])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_int256)": {
+            "label": "mapping(address => int256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_enum(ActivityType)1587,t_struct(PointRewardConfig)1592_storage)": {
+            "label": "mapping(enum ReferralTrackerUpgradeable.ActivityType => struct ReferralTrackerUpgradeable.PointRewardConfig)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(PointRewardConfig)1592_storage": {
+            "label": "struct ReferralTrackerUpgradeable.PointRewardConfig",
+            "members": [
+              {
+                "label": "referrerReward",
+                "type": "t_int256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "refereeReward",
+                "type": "t_int256",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(ReferralActivity)1600_storage": {
+            "label": "struct ReferralTrackerUpgradeable.ReferralActivity",
+            "members": [
+              {
+                "label": "activityType",
+                "type": "t_enum(ActivityType)1587",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "point",
+                "type": "t_int256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "timestamp",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              }
+            ],
+            "numberOfBytes": "96"
           }
         },
         "namespaces": {
