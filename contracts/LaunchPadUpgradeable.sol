@@ -44,6 +44,8 @@ contract LaunchPadUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgradea
 
     uint256 public targetFundRasingAmount;
     uint8 public _feeRate;
+    // 최소 거래 금액 (0.001 ETH)
+    uint256 public constant MIN_TRANSACTION_AMOUNT = 1000000000000000;
 
     mapping(address => ContractInfo) public contractInfo;
 
@@ -140,7 +142,7 @@ contract LaunchPadUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgradea
         ERC404Token newContract = new ERC404Token(
             name, 
             symbol, 
-            maxSupply, 
+            0, // 초기 발행 없이 생성
             address(this), 
             address(this), 
             tokenTreasuryAddress, 
@@ -154,6 +156,14 @@ contract LaunchPadUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgradea
         address contractAddress = address(newContract); 
         
         require(!contractInfo[contractAddress].exists, "AD");
+
+        // LaunchPad가 owner이므로 직접 토큰을 mint
+        newContract.mintERC20(address(this), maxSupply);
+        
+        // 토큰이 제대로 발행되었는지 검증
+        IERC404 tokenContract = IERC404(contractAddress);
+        uint256 launchPadBalance = tokenContract.balanceOf(address(this));
+        require(launchPadBalance >= maxSupply, "Token minting failed");
 
         contractInfo[contractAddress] = ContractInfo({
             deployedBy: msg.sender,
@@ -206,9 +216,14 @@ contract LaunchPadUpgradeable is Initializable, UUPSUpgradeable, OwnableUpgradea
         require(info.totalSupply < targetFundRasingAmount, "TFR");
 
         _tokenContract = IERC404(contractAddress);
+        
+        // 최소 거래 금액 검증
+        require(msg.value >= MIN_TRANSACTION_AMOUNT, "Amount below minimum threshold");
+        
         uint256 deposit = msg.value;
 
-        deposit = msg.value / (100 + _feeRate) * 100;
+        // 수수료 계산 수정 (정확한 계산을 위해 곱셈을 먼저 수행)
+        deposit = (msg.value * 100) / (100 + _feeRate);
         require(deposit > 0, "Amount must be non-zero!");
         
         uint256 amount = _bondingCurveContract.calculatePurchaseReturn(info.totalSupply, info.ethDepositBalance, deposit);

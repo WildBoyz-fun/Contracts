@@ -60,6 +60,10 @@ contract ERC404Token is Ownable, ERC404U16 {
     _setERC721TransferExempt(account_, value_);
   }
 
+  function mintERC20(address to_, uint256 amount_) external onlyOwner {
+    _mintERC20(to_, amount_);
+  }
+
   function setTokenURI(string memory tokenURI_) public onlyOwner {
     // token file only. (not json type and rarity values)
     baseTokenURI = tokenURI_;

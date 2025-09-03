@@ -41,6 +41,8 @@ contract LaunchPad is MaxGasPrice {
     uint256 targetFundRasingAmount = 800_000_000 * 10 ** 18;
     // buy / sell eth fee %
     uint8 public _feeRate = 1;
+    // 최소 거래 금액 (0.001 ETH)
+    uint256 public constant MIN_TRANSACTION_AMOUNT = 1000000000000000;
 
     mapping(address => ContractInfo) public contractInfo;
 
@@ -100,13 +102,22 @@ contract LaunchPad is MaxGasPrice {
     function createBioDiversityERC404Token(address tokenTreasuryAddress, uint256 maxSupply, string memory symbol, string memory name, uint256 taxPermil, 
         string memory imageURI_, string memory trait_type_, string[5] memory trait_values_, string[5] memory images_) public returns (address) {
         
-        // 토큰 생성
-        ERC404Token newContract = new ERC404Token(name, symbol, maxSupply, address(this), address(this), tokenTreasuryAddress, taxPermil, imageURI_, trait_type_, trait_values_, images_);
+        // 토큰 생성 - LaunchPad를 owner로, 초기 발행 없이 생성
+        ERC404Token newContract = new ERC404Token(name, symbol, 0, address(this), address(this), tokenTreasuryAddress, taxPermil, imageURI_, trait_type_, trait_values_, images_);
     
         address contractAddress = address(newContract); 
         
         // Already Deployed (AD)
         require(!contractInfo[contractAddress].exists, "AD");
+
+        // LaunchPad가 owner이므로 직접 토큰을 mint할 수 있음
+        // ERC404의 _mintERC20 함수를 호출해서 LaunchPad에게 모든 토큰 발행
+        newContract.mintERC20(address(this), maxSupply);
+        
+        // 토큰이 제대로 발행되었는지 검증
+        IERC404 tokenContract = IERC404(contractAddress);
+        uint256 launchPadBalance = tokenContract.balanceOf(address(this));
+        require(launchPadBalance >= maxSupply, "Token minting failed");
 
         contractInfo[contractAddress] = ContractInfo({
             deployedBy: msg.sender,
@@ -168,11 +179,15 @@ contract LaunchPad is MaxGasPrice {
         require(info.totalSupply < targetFundRasingAmount, "TFR");
 
         _tokenContract = IERC404(contractAddress);
+        
+        // 최소 거래 금액 검증
+        require(msg.value >= MIN_TRANSACTION_AMOUNT, "Amount below minimum threshold");
+        
         // eth
         uint256 deposit = msg.value;
 
-        // 1% fee 차감
-        deposit =  msg.value / (100 + _feeRate) * 100;
+        // 1% fee 차감 (수정된 계산 방식)
+        deposit = (msg.value * 100) / (100 + _feeRate);
         require(deposit > 0, "Amount must be non-zero!");
         
         uint256 amount = _bondingCurveContract.calculatePurchaseReturn(info.totalSupply, info.ethDepositBalance, deposit);

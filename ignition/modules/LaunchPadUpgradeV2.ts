@@ -12,7 +12,7 @@ const LaunchPadUpgradeV2Module = buildModule("LaunchPadUpgradeV2Module", (m) => 
   const launchPadImplV2 = m.contract("LaunchPadUpgradeable");
   
   // Get the proxy contract instance
-  const proxy = m.contractAt("LaunchPadUpgradeable", proxyAddress);
+  const proxy = m.contractAt("LaunchPadUpgradeable", proxyAddress, { id: "ExistingProxy" });
   
   // Upgrade the proxy to point to new implementation
   m.call(proxy, "upgradeToAndCall", [launchPadImplV2, "0x"], {
