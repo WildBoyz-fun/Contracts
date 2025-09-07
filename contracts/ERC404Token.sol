@@ -11,6 +11,17 @@ contract ERC404Token is Ownable, ERC404U16 {
   address private _tokenTreasury;
   uint256 private _taxPermil;
 
+  struct TradeData {
+    address trader;
+    uint256 tokenAmount;
+    uint256 ethAmount;
+    uint256 price;
+    uint256 timestamp;
+    bool isBuy; // true for buy, false for sell
+  }
+
+  TradeData[] public trades;
+
   string public dataURI;
   string public baseTokenURI;
   string[5] private images;
@@ -224,6 +235,36 @@ contract ERC404Token is Ownable, ERC404U16 {
     // Transferring ERC-20s directly requires the _transfer function.
     // Handles ERC-721 exemptions internally.
     return _transferERC20WithERC721(msg.sender, to_, value_);
+  }
+
+  function addTradeData(
+    address trader_,
+    uint256 tokenAmount_,
+    uint256 ethAmount_,
+    uint256 price_,
+    bool isBuy_
+  ) external onlyOwner {
+    trades.push(TradeData({
+      trader: trader_,
+      tokenAmount: tokenAmount_,
+      ethAmount: ethAmount_,
+      price: price_,
+      timestamp: block.timestamp,
+      isBuy: isBuy_
+    }));
+  }
+
+  function getTrades() external view returns (TradeData[] memory) {
+    return trades;
+  }
+
+  function getTradesCount() external view returns (uint256) {
+    return trades.length;
+  }
+
+  function getTrade(uint256 index_) external view returns (TradeData memory) {
+    require(index_ < trades.length, "Index out of bounds");
+    return trades[index_];
   }
 
 }

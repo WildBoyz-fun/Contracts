@@ -203,6 +203,10 @@ contract LaunchPad is MaxGasPrice {
 
         uint256 currentPrice = _bondingCurveContract.calculatePurchaseBalance(info.totalSupply, info.ethDepositBalance, 1 * (10 ** 18));
 
+        // Add trade data to token contract
+        ERC404Token tokenContract = ERC404Token(contractAddress);
+        tokenContract.addTradeData(msg.sender, amount, deposit, currentPrice, true);
+
         emit TokenPurchased(contractAddress, msg.sender, amount, currentPrice);
 
         //event require(amount >= (8억 - contractsTotalSupply[contractAddress] + (+/- 오차))))) 허용, 토큰 남은건 DEX로, 이더는 15% LaunchPad로
@@ -237,6 +241,10 @@ contract LaunchPad is MaxGasPrice {
         _tokenContract.transferFrom(msg.sender, address(this), amount);
 
         uint256 currentPrice = _bondingCurveContract.calculatePurchaseBalance(info.totalSupply, info.ethDepositBalance, 1 * (10 ** 18));
+
+        // Add trade data to token contract
+        ERC404Token tokenContract = ERC404Token(contractAddress);
+        tokenContract.addTradeData(msg.sender, amount, deposit, currentPrice, false);
 
         emit TokenSold(contractAddress, msg.sender, amount, currentPrice);
         
