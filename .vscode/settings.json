@@ -1,0 +1,92 @@
+{
+  // Cursor AI Settings for Korean Commit Messages
+  "cursor.ai.language": "ko",
+  "cursor.ai.commitMessageLanguage": "korean",
+  
+  // Git Settings
+  "git.inputValidation": "warn",
+  "git.inputValidationLength": 50,
+  "git.inputValidationSubjectLength": 50,
+  
+  // AI Commit Message Settings
+  "ai.commitMessage.language": "ko",
+  "ai.commitMessage.template": "{type}: {description}",
+  "ai.commitMessage.conventionalCommits": false,
+  "ai.commitMessage.useKorean": true,
+  
+  // Editor Settings for Korean
+  "editor.unicodeHighlight.ambiguousCharacters": false,
+  "editor.unicodeHighlight.invisibleCharacters": false,
+  
+  // Solidity specific settings
+  "solidity.defaultCompiler": "remote",
+  "solidity.compileUsingRemoteVersion": "v0.8.28+commit.7893614a",
+  "solidity.formatter": "prettier",
+  
+  // TypeScript settings for Hardhat scripts
+  "typescript.preferences.includePackageJsonAutoImports": "auto",
+  "typescript.suggest.autoImports": true,
+  
+  // Editor settings
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit"
+  },
+  
+  // Files settings
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  
+  // Language specific formatters
+  "[solidity]": {
+    "editor.defaultFormatter": "JuanBlanco.solidity"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  
+  // Custom commit message templates for blockchain projects
+  "commitMessageTemplate.template": [
+    "{type}: {description}",
+    "",
+    "{body}"
+  ],
+  "commitMessageTemplate.tokens": [
+    {
+      "label": "feat",
+      "detail": "새로운 컨트랙트 기능 추가"
+    },
+    {
+      "label": "fix", 
+      "detail": "컨트랙트 버그 수정"
+    },
+    {
+      "label": "security",
+      "detail": "보안 강화 관련 변경"
+    },
+    {
+      "label": "gas",
+      "detail": "가스 최적화"
+    },
+    {
+      "label": "test",
+      "detail": "테스트 코드 추가/수정"
+    },
+    {
+      "label": "deploy",
+      "detail": "배포 관련 변경"
+    },
+    {
+      "label": "upgrade",
+      "detail": "컨트랙트 업그레이드"
+    }
+  ]
+}
