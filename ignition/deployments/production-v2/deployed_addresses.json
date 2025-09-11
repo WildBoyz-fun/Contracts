@@ -1,4 +1,7 @@
 {
   "OwnerGroupModule#OwnerGroupContract": "0xcaE700123cd8CcF9F361e5d9f54Ec9f194B7a63c",
-  "ReferralTrackerModule#ReferralTracker": "0x0784b3A6C8a5c0065ea86C4e8b632728eE0202a0"
+  "ReferralTrackerModule#ReferralTracker": "0x0784b3A6C8a5c0065ea86C4e8b632728eE0202a0",
+  "BondingCurveModule#BondingCurve": "0x1Ae3C3e4dE4bB392b448d26B2Bf5137AA26E92E1",
+  "TokenTreasuryModule#TokenTreasury": "0x109555b22887B4E04Da6500a190379776E61aC4F",
+  "LaunchPadModule#LaunchPad": "0x8D111b16327d1B3A0B25380B84133eD13E6dC6C1"
 }

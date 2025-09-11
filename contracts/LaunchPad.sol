@@ -33,6 +33,21 @@ contract LaunchPad is MaxGasPrice {
         string mainImage;
     }
 
+    // Transaction history structure for bonding curve calculations
+    struct TransactionRecord {
+        uint256 timestamp;
+        address user;
+        address tokenAddress;
+        string transactionType; // "BUY" or "SELL"
+        uint256 ethAmount;      // ETH amount (before fee for buy, after fee for sell)
+        uint256 tokenAmount;    // Token amount
+        uint256 pricePerToken;  // Price per token in wei (ethAmount / tokenAmount)
+        uint256 totalSupplyAfter; // Total supply after this transaction
+        uint256 ethBalanceAfter;  // ETH balance after this transaction
+        bytes32 txHash;         // Transaction hash
+        uint256 blockNumber;    // Block number
+    }
+
     address private _treasuryAddress;
     uint256 public totalContractCount;
     TokenInfo[] public launchedTokenContracts;
@@ -43,6 +58,12 @@ contract LaunchPad is MaxGasPrice {
     uint8 public _feeRate = 1;
 
     mapping(address => ContractInfo) public contractInfo;
+    
+    // Transaction history storage
+    mapping(address => TransactionRecord[]) public tokenTransactionHistory;
+    mapping(address => TransactionRecord[]) public userTransactionHistory;
+    TransactionRecord[] public allTransactions;
+    uint256 public totalTransactionCount;
 
     // events
     event TokensPurchased(address indexed buyer, uint256 amount);
@@ -59,6 +80,16 @@ contract LaunchPad is MaxGasPrice {
         address indexed contractAddress,
         uint256 tokenAmount,
         uint256 ethAmount
+    );
+    
+    // Transaction history events
+    event TransactionRecorded(
+        address indexed user,
+        address indexed tokenAddress,
+        string transactionType,
+        uint256 ethAmount,
+        uint256 tokenAmount,
+        uint256 pricePerToken
     );
 
     modifier onlyDeployed(address contractAddress) {
@@ -145,6 +176,49 @@ contract LaunchPad is MaxGasPrice {
         return _bondingCurveContract.calculatePurchaseBalance(info.totalSupply, info.ethDepositBalance, tokenAmountToPurchase);
     }
 
+    // 이더 수량에 맞는 토큰 수량 Return (Frontend에서 실시간 계산용)
+    function calculatePurchaseReturn(address contractAddress, uint256 ethAmount) external view onlyDeployed(contractAddress) returns (uint256) {
+        ContractInfo storage info = contractInfo[contractAddress];
+        // 1% fee 적용: deposit = ethAmount / 101 * 100
+        uint256 adjustedEthAmount = ethAmount / (100 + _feeRate) * 100;
+        return _bondingCurveContract.calculatePurchaseReturn(info.totalSupply, info.ethDepositBalance, adjustedEthAmount);
+    }
+
+    // Internal function to record transaction history
+    function _recordTransaction(
+        address user,
+        address tokenAddress,
+        string memory transactionType,
+        uint256 ethAmount,
+        uint256 tokenAmount,
+        uint256 totalSupplyAfter,
+        uint256 ethBalanceAfter
+    ) internal {
+        uint256 pricePerToken = tokenAmount > 0 ? (ethAmount * 10**18) / tokenAmount : 0;
+        
+        TransactionRecord memory newRecord = TransactionRecord({
+            timestamp: block.timestamp,
+            user: user,
+            tokenAddress: tokenAddress,
+            transactionType: transactionType,
+            ethAmount: ethAmount,
+            tokenAmount: tokenAmount,
+            pricePerToken: pricePerToken,
+            totalSupplyAfter: totalSupplyAfter,
+            ethBalanceAfter: ethBalanceAfter,
+            txHash: blockhash(block.number - 1), // Use previous block hash as approximation
+            blockNumber: block.number
+        });
+        
+        // Store in multiple mappings for efficient querying
+        tokenTransactionHistory[tokenAddress].push(newRecord);
+        userTransactionHistory[user].push(newRecord);
+        allTransactions.push(newRecord);
+        totalTransactionCount++;
+        
+        emit TransactionRecorded(user, tokenAddress, transactionType, ethAmount, tokenAmount, pricePerToken);
+    }
+
     function buyToken(address contractAddress) public payable validGasPrice returns (uint256) {
         ContractInfo storage info = contractInfo[contractAddress];
         // contract sale not active (SNA)
@@ -171,6 +245,17 @@ contract LaunchPad is MaxGasPrice {
         info.totalSupply += amount;
         // contract 누적 eth 집계
         info.ethDepositBalance += deposit;
+
+        // Record transaction history
+        _recordTransaction(
+            msg.sender,
+            contractAddress,
+            "BUY",
+            msg.value, // Original ETH amount before fee
+            amount,
+            info.totalSupply,
+            info.ethDepositBalance
+        );
 
         //event require(amount >= (8억 - contractsTotalSupply[contractAddress] + (+/- 오차))))) 허용, 토큰 남은건 DEX로, 이더는 15% LaunchPad로
         if (info.totalSupply >= targetFundRasingAmount) {
@@ -204,6 +289,17 @@ contract LaunchPad is MaxGasPrice {
         _tokenContract.transferFrom(msg.sender, address(this), amount);        
 
         emit TokenSold(msg.sender, amount);
+
+        // Record transaction history
+        _recordTransaction(
+            msg.sender,
+            contractAddress,
+            "SELL",
+            deposit, // ETH amount after fee
+            amount,
+            info.totalSupply,
+            info.ethDepositBalance
+        );
         
         payable(msg.sender).transfer(deposit);
     }
@@ -252,6 +348,157 @@ contract LaunchPad is MaxGasPrice {
 
         _liquidityProviderContract.addLiquidityETH(contractAddress, tokenAmount, ethAmount);
         emit SuppliedLP(contractAddress, tokenAmount, ethAmount);
+    }
+
+    // Real-time bonding curve calculations for UI - all calculations done on-chain
+    
+    // Calculate tokens for multiple ETH amounts at once
+    function calculateTokensForEthAmountsBatch(
+        address contractAddress, 
+        uint256[] memory ethAmounts
+    ) external view onlyDeployed(contractAddress) returns (uint256[] memory) {
+        ContractInfo storage info = contractInfo[contractAddress];
+        return _bondingCurveContract.calculatePurchaseReturnBatchWithFee(
+            info.totalSupply,
+            info.ethDepositBalance,
+            ethAmounts,
+            _feeRate
+        );
+    }
+    
+    // Quick calculation for common ETH amounts (0.001, 0.01, 0.1, 1 ETH)
+    function calculateTokensQuickReference(address contractAddress) 
+        external view onlyDeployed(contractAddress) 
+        returns (
+            uint256 tokens_for_001_eth,
+            uint256 tokens_for_01_eth, 
+            uint256 tokens_for_1_eth,
+            uint256 tokens_for_10_eth
+        ) {
+        ContractInfo storage info = contractInfo[contractAddress];
+        
+        // Calculate with fee consideration
+        uint256 deposit_001 = 1000000000000000 / (100 + _feeRate) * 100;    // 0.001 ETH with fee
+        uint256 deposit_01 = 10000000000000000 / (100 + _feeRate) * 100;    // 0.01 ETH with fee  
+        uint256 deposit_1 = 100000000000000000 / (100 + _feeRate) * 100;    // 0.1 ETH with fee
+        uint256 deposit_10 = 1000000000000000000 / (100 + _feeRate) * 100;  // 1 ETH with fee
+        
+        tokens_for_001_eth = _bondingCurveContract.calculatePurchaseReturn(info.totalSupply, info.ethDepositBalance, deposit_001);
+        tokens_for_01_eth = _bondingCurveContract.calculatePurchaseReturn(info.totalSupply, info.ethDepositBalance, deposit_01);
+        tokens_for_1_eth = _bondingCurveContract.calculatePurchaseReturn(info.totalSupply, info.ethDepositBalance, deposit_1);
+        tokens_for_10_eth = _bondingCurveContract.calculatePurchaseReturn(info.totalSupply, info.ethDepositBalance, deposit_10);
+    }
+    
+    // Calculate exact tokens for any ETH amount (considering fees)
+    function calculateExactTokensForEth(address contractAddress, uint256 ethAmount) 
+        external view onlyDeployed(contractAddress) returns (uint256) {
+        ContractInfo storage info = contractInfo[contractAddress];
+        return _bondingCurveContract.calculatePurchaseReturnWithFee(
+            info.totalSupply,
+            info.ethDepositBalance, 
+            ethAmount,
+            _feeRate
+        );
+    }
+
+    // Calculate ETH needed for specific token amount
+    function calculateEthNeededForTokens(address contractAddress, uint256 tokenAmount) 
+        external view onlyDeployed(contractAddress) returns (uint256) {
+        ContractInfo storage info = contractInfo[contractAddress];
+        uint256 ethNeeded = _bondingCurveContract.calculatePurchaseBalance(info.totalSupply, info.ethDepositBalance, tokenAmount);
+        // Add fee back: if deposit = msgValue / 101 * 100, then msgValue = deposit * 101 / 100
+        return ethNeeded * (100 + _feeRate) / 100;
+    }
+
+    // Get comprehensive bonding curve state for a token
+    function getBondingCurveState(address contractAddress) 
+        external view onlyDeployed(contractAddress) 
+        returns (
+            uint256 currentTotalSupply,
+            uint256 currentEthBalance, 
+            uint256 maxSupply,
+            bool saleActive,
+            uint8 feeRate,
+            uint256 targetFunding,
+            uint256 remainingToTarget
+        ) {
+        ContractInfo storage info = contractInfo[contractAddress];
+        currentTotalSupply = info.totalSupply;
+        currentEthBalance = info.ethDepositBalance;
+        maxSupply = info.maxSupply;
+        saleActive = info.saleIsActive;
+        feeRate = _feeRate;
+        targetFunding = targetFundRasingAmount;
+        remainingToTarget = targetFundRasingAmount > info.totalSupply ? targetFundRasingAmount - info.totalSupply : 0;
+    }
+
+    // Transaction history query functions
+    
+    // Get transaction history for a specific token
+    function getTokenTransactionHistory(address tokenAddress) external view returns (TransactionRecord[] memory) {
+        return tokenTransactionHistory[tokenAddress];
+    }
+    
+    // Get transaction history for a specific user
+    function getUserTransactionHistory(address user) external view returns (TransactionRecord[] memory) {
+        return userTransactionHistory[user];
+    }
+    
+    // Get paginated transaction history for a token
+    function getTokenTransactionHistoryPaginated(address tokenAddress, uint256 offset, uint256 limit) external view returns (TransactionRecord[] memory) {
+        TransactionRecord[] storage records = tokenTransactionHistory[tokenAddress];
+        uint256 length = records.length;
+        
+        if (offset >= length) {
+            return new TransactionRecord[](0);
+        }
+        
+        uint256 end = offset + limit;
+        if (end > length) {
+            end = length;
+        }
+        
+        uint256 resultLength = end - offset;
+        TransactionRecord[] memory result = new TransactionRecord[](resultLength);
+        
+        for (uint256 i = 0; i < resultLength; i++) {
+            result[i] = records[length - 1 - offset - i]; // Return in reverse order (newest first)
+        }
+        
+        return result;
+    }
+    
+    // Get total transaction count for a token
+    function getTokenTransactionCount(address tokenAddress) external view returns (uint256) {
+        return tokenTransactionHistory[tokenAddress].length;
+    }
+    
+    // Get total transaction count for a user
+    function getUserTransactionCount(address user) external view returns (uint256) {
+        return userTransactionHistory[user].length;
+    }
+    
+    // Get recent transactions (last N transactions across all tokens)
+    function getRecentTransactions(uint256 limit) external view returns (TransactionRecord[] memory) {
+        uint256 totalCount = allTransactions.length;
+        if (totalCount == 0 || limit == 0) {
+            return new TransactionRecord[](0);
+        }
+        
+        uint256 actualLimit = limit > totalCount ? totalCount : limit;
+        TransactionRecord[] memory result = new TransactionRecord[](actualLimit);
+        
+        for (uint256 i = 0; i < actualLimit; i++) {
+            result[i] = allTransactions[totalCount - 1 - i]; // Return in reverse order (newest first)
+        }
+        
+        return result;
+    }
+    
+    // Get transaction by index (from all transactions)
+    function getTransactionByIndex(uint256 index) external view returns (TransactionRecord memory) {
+        require(index < allTransactions.length, "Index out of bounds");
+        return allTransactions[index];
     }
 
 }
