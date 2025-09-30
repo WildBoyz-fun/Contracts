@@ -46,7 +46,8 @@ describe("LaunchPad", function () {
                 params.imageURI,
                 params.traitType,
                 params.traitValues,
-                params.images
+                params.images,
+                { value: ethers.parseEther("0.001") }
             );
             const receipt = await tx.wait();
             
@@ -76,7 +77,8 @@ describe("LaunchPad", function () {
                 params.imageURI,
                 params.traitType,
                 params.traitValues,
-                params.images
+                params.images,
+                { value: ethers.parseEther("0.001") }
             );
             const receipt = await tx.wait();
             
@@ -106,7 +108,8 @@ describe("LaunchPad", function () {
                 params.imageURI,
                 params.traitType,
                 params.traitValues,
-                params.images
+                params.images,
+                { value: ethers.parseEther("0.001") }
             );
             const receipt = await tx.wait();
             
@@ -134,7 +137,8 @@ describe("LaunchPad", function () {
 
             console.log(`contract owner ${owner.address}`)
 
-            const tx = await launchPad.createBioDiversityERC404Token(params.tokenTreasuryAddress,
+            const tx = await launchPad.createBioDiversityERC404Token(
+                params.tokenTreasuryAddress,
                 params.totalSupply,
                 params.symbol,
                 params.name,
@@ -142,7 +146,8 @@ describe("LaunchPad", function () {
                 params.imageURI,
                 params.traitType,
                 params.traitValues,
-                params.images
+                params.images,
+                { value: ethers.parseEther("0.001") }
             );
             const receipt = await tx.wait();
             
@@ -170,7 +175,8 @@ describe("LaunchPad", function () {
                 params.imageURI,
                 params.traitType,
                 params.traitValues,
-                params.images
+                params.images,
+                { value: ethers.parseEther("0.001") }
             );
             const receipt1 = await tx1.wait();
             const event1 = receipt1?.logs
@@ -188,7 +194,8 @@ describe("LaunchPad", function () {
                 params.imageURI,
                 params.traitType,
                 params.traitValues,
-                params.images
+                params.images,
+                { value: ethers.parseEther("0.001") }
             );
             const receipt2 = await tx2.wait();
             const event2 = receipt2?.logs
@@ -217,7 +224,8 @@ describe("LaunchPad", function () {
                 params.imageURI,
                 params.traitType,
                 params.traitValues,
-                params.images
+                params.images,
+                { value: ethers.parseEther("0.001") }
             );
             const receipt1 = await tx1.wait();
             const event1 = receipt1?.logs
@@ -235,7 +243,8 @@ describe("LaunchPad", function () {
                 params.imageURI,
                 params.traitType,
                 params.traitValues,
-                params.images
+                params.images,
+                { value: ethers.parseEther("0.001") }
             );
             const receipt2 = await tx2.wait();
             const event2 = receipt2?.logs
@@ -265,7 +274,8 @@ describe("LaunchPad", function () {
         
             console.log(`${buyer.address} has a wallet balance: ${balance}`)
 
-            const tx = await launchPad.createBioDiversityERC404Token(params.tokenTreasuryAddress,
+            const tx = await launchPad.createBioDiversityERC404Token(
+                params.tokenTreasuryAddress,
                 params.totalSupply,
                 params.symbol,
                 params.name,
@@ -273,7 +283,8 @@ describe("LaunchPad", function () {
                 params.imageURI,
                 params.traitType,
                 params.traitValues,
-                params.images
+                params.images,
+                { value: ethers.parseEther("0.001") }
             );
             const receipt = await tx.wait();
             
@@ -333,7 +344,8 @@ describe("LaunchPad", function () {
         
             console.log(`${buyer.address} has a wallet balance: ${balance}`)
 
-            const tx = await launchPad.createBioDiversityERC404Token(params.tokenTreasuryAddress,
+            const tx = await launchPad.createBioDiversityERC404Token(
+                params.tokenTreasuryAddress,
                 params.totalSupply,
                 params.symbol,
                 params.name,
@@ -341,7 +353,8 @@ describe("LaunchPad", function () {
                 params.imageURI,
                 params.traitType,
                 params.traitValues,
-                params.images
+                params.images,
+                { value: ethers.parseEther("0.001") }
             );
             const receipt = await tx.wait();
             
@@ -405,7 +418,8 @@ describe("LaunchPad", function () {
 
             console.log(`contract owner ${owner.address}`)
 
-            const tx = await launchPad.createBioDiversityERC404Token(params.tokenTreasuryAddress,
+            const tx = await launchPad.createBioDiversityERC404Token(
+                params.tokenTreasuryAddress,
                 params.totalSupply,
                 params.symbol,
                 params.name,
@@ -413,7 +427,8 @@ describe("LaunchPad", function () {
                 params.imageURI,
                 params.traitType,
                 params.traitValues,
-                params.images
+                params.images,
+                { value: ethers.parseEther("0.001") }
             );
             const receipt = await tx.wait();
             

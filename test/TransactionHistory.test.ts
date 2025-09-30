@@ -34,7 +34,8 @@ describe("LaunchPad - Transaction History", function () {
                 params.imageURI,
                 params.traitType,
                 params.traitValues,
-                params.images
+                params.images,
+                { value: ethers.parseEther("0.001") }
             );
             const createReceipt = await createTx.wait();
             
@@ -168,7 +169,8 @@ describe("LaunchPad - Transaction History", function () {
                 params.imageURI,
                 params.traitType,
                 params.traitValues,
-                params.images
+                params.images,
+                { value: ethers.parseEther("0.001") }
             );
             const createReceipt = await createTx.wait();
             

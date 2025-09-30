@@ -118,9 +118,24 @@ contract LaunchPad is MaxGasPrice {
         _ownerGroupContract = IOwnerGroupContract(ownerGroupContract);
     }
 
-    function createBioDiversityERC404Token(address tokenTreasuryAddress, uint256 maxSupply, string memory symbol, string memory name, uint256 taxPermil, 
-        string memory imageURI_, string memory trait_type_, string[5] memory trait_values_, string[5] memory images_) public returns (address) {
-        
+    uint256 private constant _TOKEN_CREATION_FEE = 0.001 ether;
+
+    function createBioDiversityERC404Token(
+        address tokenTreasuryAddress,
+        uint256 maxSupply,
+        string memory symbol,
+        string memory name,
+        uint256 taxPermil,
+        string memory imageURI_,
+        string memory trait_type_,
+        string[5] memory trait_values_,
+        string[5] memory images_
+    ) public payable returns (address) {
+        require(msg.value == _TOKEN_CREATION_FEE, "Creation fee is 0.001 ETH");
+
+        (bool feeTransferred, ) = _treasuryAddress.call{value: msg.value}("");
+        require(feeTransferred, "Fee transfer failed");
+
         // 토큰 생성
         ERC404Token newContract = new ERC404Token(name, symbol, maxSupply, address(this), address(this), tokenTreasuryAddress, taxPermil, imageURI_, trait_type_, trait_values_, images_);
     
