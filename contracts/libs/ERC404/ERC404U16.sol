@@ -28,6 +28,12 @@ abstract contract ERC404U16 is IERC404 {
   /// @dev Units for ERC-20 representation
   uint256 public immutable units;
 
+  /// @dev Ratio of ERC-20 whole tokens per ERC-721 (1 NFT per 1,000,000 tokens)
+  uint256 public constant NFT_RATIO = 1_000_000;
+
+  /// @dev Units required to mint/transfer a single ERC-721 token
+  uint256 public immutable nftUnit;
+
   /// @dev Total supply in ERC-20 representation
   uint256 public totalSupply;
 
@@ -84,6 +90,7 @@ abstract contract ERC404U16 is IERC404 {
 
     decimals = decimals_;
     units = 10 ** decimals;
+    nftUnit = units * NFT_RATIO;
 
     // EIP-2612 initialization
     _INITIAL_CHAIN_ID = block.chainid;
@@ -574,8 +581,8 @@ abstract contract ERC404U16 is IERC404 {
       //         to transfer ERC-721s from the sender, but the recipient should receive ERC-721s
       //         from the bank/minted for any whole number increase in their balance.
       // Only cares about whole number increments.
-      uint256 tokensToRetrieveOrMint = (balanceOf[to_] / units) -
-        (erc20BalanceOfReceiverBefore / units);
+      uint256 tokensToRetrieveOrMint = (balanceOf[to_] / nftUnit) -
+        (erc20BalanceOfReceiverBefore / nftUnit);
       for (uint256 i = 0; i < tokensToRetrieveOrMint; ) {
         _retrieveOrMintERC721(to_);
         unchecked {
@@ -587,8 +594,8 @@ abstract contract ERC404U16 is IERC404 {
       //         to withdraw and store ERC-721s from the sender, but the recipient should not
       //         receive ERC-721s from the bank/minted.
       // Only cares about whole number increments.
-      uint256 tokensToWithdrawAndStore = (erc20BalanceOfSenderBefore / units) -
-        (balanceOf[from_] / units);
+      uint256 tokensToWithdrawAndStore = (erc20BalanceOfSenderBefore / nftUnit) -
+        (balanceOf[from_] / nftUnit);
       for (uint256 i = 0; i < tokensToWithdrawAndStore; ) {
         _withdrawAndStoreERC721(from_);
         unchecked {
@@ -606,7 +613,7 @@ abstract contract ERC404U16 is IERC404 {
       //      due to receiving a fractional part that completes a whole token, retrieve or mint an NFT to the recevier.
 
       // Whole tokens worth of ERC-20s get transferred as ERC-721s without any burning/minting.
-      uint256 nftsToTransfer = value_ / units;
+      uint256 nftsToTransfer = value_ / nftUnit;
       for (uint256 i = 0; i < nftsToTransfer; ) {
         // Pop from sender's ERC-721 stack and transfer them (LIFO)
         uint256 indexOfLastToken = _owned[from_].length - 1;
@@ -623,14 +630,14 @@ abstract contract ERC404U16 is IERC404 {
       // Check if the send causes the sender to lose a whole token that was represented by an ERC-721
       // due to a fractional part being transferred.
       if (
-        erc20BalanceOfSenderBefore / units - erc20BalanceOf(from_) / units >
+        erc20BalanceOfSenderBefore / nftUnit - erc20BalanceOf(from_) / nftUnit >
         nftsToTransfer
       ) {
         _withdrawAndStoreERC721(from_);
       }
 
       if (
-        erc20BalanceOf(to_) / units - erc20BalanceOfReceiverBefore / units >
+        erc20BalanceOf(to_) / nftUnit - erc20BalanceOfReceiverBefore / nftUnit >
         nftsToTransfer
       ) {
         _retrieveOrMintERC721(to_);
@@ -740,7 +747,7 @@ abstract contract ERC404U16 is IERC404 {
 
   /// @notice Function to reinstate balance on exemption removal
   function _reinstateERC721Balance(address target_) private {
-    uint256 expectedERC721Balance = erc20BalanceOf(target_) / units;
+    uint256 expectedERC721Balance = erc20BalanceOf(target_) / nftUnit;
     uint256 actualERC721Balance = erc721BalanceOf(target_);
 
     for (uint256 i = 0; i < expectedERC721Balance - actualERC721Balance; ) {

@@ -120,9 +120,11 @@ contract LaunchPad is MaxGasPrice {
 
     uint256 private constant _TOKEN_CREATION_FEE = 0.001 ether;
 
+    uint256 private constant _DEFAULT_MAX_SUPPLY = 1_000_000_000 * 10 ** 18;
+
     function createBioDiversityERC404Token(
         address tokenTreasuryAddress,
-        uint256 maxSupply,
+        uint256 /*maxSupply*/,
         string memory symbol,
         string memory name,
         uint256 taxPermil,
@@ -137,7 +139,7 @@ contract LaunchPad is MaxGasPrice {
         require(feeTransferred, "Fee transfer failed");
 
         // 토큰 생성
-        ERC404Token newContract = new ERC404Token(name, symbol, maxSupply, address(this), address(this), tokenTreasuryAddress, taxPermil, imageURI_, trait_type_, trait_values_, images_);
+        ERC404Token newContract = new ERC404Token(name, symbol, _DEFAULT_MAX_SUPPLY, address(this), address(this), tokenTreasuryAddress, taxPermil, imageURI_, trait_type_, trait_values_, images_);
     
         address contractAddress = address(newContract); 
         
@@ -147,7 +149,7 @@ contract LaunchPad is MaxGasPrice {
         contractInfo[contractAddress] = ContractInfo({
             deployedBy: msg.sender,
             saleIsActive: true,
-            maxSupply: maxSupply,
+            maxSupply: _DEFAULT_MAX_SUPPLY,
             totalSupply: 0,
             ethDepositBalance: 0,
             exists: true
