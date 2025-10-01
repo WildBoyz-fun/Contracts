@@ -12,7 +12,7 @@ contract BondingCurve is BancorFormula {
 //    uint256 private _depositBalanceOffset = 970000000000000000;
 
     // Calibrated offsets (24 decimals) to raise ~40 ETH when selling 800M tokens
-    uint256 private _tokenSupplyOffset = 1762049368563532800000000000000000;
+    uint256 private _tokenSupplyOffset = 1762049368563532800000000000;
     uint256 private _depositBalanceOffset = 970000004909802666;
     uint32 private _reserveRatio = 100000; // 10%
 
