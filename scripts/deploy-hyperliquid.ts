@@ -58,11 +58,23 @@ async function main() {
   await tokenTreasury.waitForDeployment();
   console.log("TokenTreasury deployed at:", await tokenTreasury.getAddress());
 
+  const TransactionHistory = await ethers.getContractFactory("TransactionHistory");
+  const transactionHistory = await TransactionHistory.deploy(await deployer.getAddress(), overrides);
+  await transactionHistory.waitForDeployment();
+  console.log("TransactionHistory deployed at:", await transactionHistory.getAddress());
+
+  const LaunchPadTokenFactory = await ethers.getContractFactory("LaunchPadTokenFactory");
+  const tokenFactory = await LaunchPadTokenFactory.deploy(await deployer.getAddress(), overrides);
+  await tokenFactory.waitForDeployment();
+  console.log("LaunchPadTokenFactory deployed at:", await tokenFactory.getAddress());
+
   const LaunchPad = await ethers.getContractFactory("LaunchPad");
   const launchPad = await LaunchPad.deploy(
     await tokenTreasury.getAddress(),
     await bondingCurve.getAddress(),
     await ownerGroup.getAddress(),
+    await transactionHistory.getAddress(),
+    await tokenFactory.getAddress(),
     overrides,
   );
   await launchPad.waitForDeployment();
@@ -77,6 +89,12 @@ async function main() {
   const launchPadView = await LaunchPadView.deploy();
   await launchPadView.waitForDeployment();
   console.log("LaunchPadView deployed at:", await launchPadView.getAddress());
+
+  const launchPadAddress = await launchPad.getAddress();
+  await (await transactionHistory.setLaunchPad(launchPadAddress, overrides)).wait();
+  console.log("TransactionHistory linked to LaunchPad");
+  await (await tokenFactory.setLaunchPad(launchPadAddress, overrides)).wait();
+  console.log("LaunchPadTokenFactory linked to LaunchPad");
 }
 
 main().catch((error) => {

@@ -5,8 +5,9 @@ import {IERC404} from "./libs/ERC404/interfaces/IERC404.sol";
 import {ERC404Token} from "./ERC404Token.sol";
 import "./libs/MaxGasPrice.sol";
 import "./BondingCurve.sol";
-import "./TokenTreasury.sol";
 import "./LiquidityProvider.sol";
+import {ITransactionHistory} from "./TransactionHistory.sol";
+import {LaunchPadTokenFactory} from "./LaunchPadTokenFactory.sol";
 
 import {IOwnerGroupContract} from "./libs/IOwnerGroupContract.sol";
 
@@ -20,14 +21,15 @@ error TargetReached();
 error AmountZero();
 error InsufficientLaunchPadBalance();
 error InsufficientUserBalance();
-error IndexOutOfBounds();
-
+error ZeroAddress();
 
 contract LaunchPad is MaxGasPrice {
     IERC404 private _tokenContract;
     BondingCurve private _bondingCurveContract;
     IOwnerGroupContract private _ownerGroupContract;    
     LiquidityProvider private _liquidityProviderContract;
+    LaunchPadTokenFactory private _tokenFactory;
+    ITransactionHistory private _transactionHistory;
 
     struct ContractInfo {
         address deployedBy;
@@ -47,6 +49,8 @@ contract LaunchPad is MaxGasPrice {
     // buy / sell eth fee %
     uint8 public constant FEE_RATE = 1;
 
+    uint256 private constant _DEFAULT_MAX_SUPPLY = 1_000_000_000 * 10 ** 18;
+
     mapping(address => ContractInfo) public contractInfo;
     
     // Transaction history storage
@@ -65,7 +69,6 @@ contract LaunchPad is MaxGasPrice {
         uint256 tokenAmount,
         uint256 ethAmount
     );
-
     modifier onlyDeployed(address contractAddress) {
         if (!contractInfo[contractAddress].exists) {
             revert ContractNotDeployed();
@@ -84,10 +87,28 @@ contract LaunchPad is MaxGasPrice {
         emit Received(msg.sender, msg.value);
     }
 
-    constructor (address treasuryAddress, address bondingCurveContract, address ownerGroupContract) MaxGasPrice(msg.sender) {
+    constructor (
+        address treasuryAddress,
+        address bondingCurveContract,
+        address ownerGroupContract,
+        address transactionHistoryContract,
+        address tokenFactoryContract
+    ) MaxGasPrice(msg.sender) {
+        if (
+            treasuryAddress == address(0) ||
+            bondingCurveContract == address(0) ||
+            ownerGroupContract == address(0) ||
+            transactionHistoryContract == address(0) ||
+            tokenFactoryContract == address(0)
+        ) {
+            revert ZeroAddress();
+        }
+
         _treasuryAddress = treasuryAddress;
         _bondingCurveContract = BondingCurve(bondingCurveContract);
         _ownerGroupContract = IOwnerGroupContract(ownerGroupContract);
+        _transactionHistory = ITransactionHistory(transactionHistoryContract);
+        _tokenFactory = LaunchPadTokenFactory(tokenFactoryContract);
     }
 
     function bondingCurveAddress() external view returns (address) {
@@ -95,8 +116,6 @@ contract LaunchPad is MaxGasPrice {
     }
 
     uint256 private constant _TOKEN_CREATION_FEE = 0.001 ether;
-
-    uint256 private constant _DEFAULT_MAX_SUPPLY = 1_000_000_000 * 10 ** 18;
 
     function createBioDiversityERC404Token(
         address tokenTreasuryAddress,
@@ -119,9 +138,16 @@ contract LaunchPad is MaxGasPrice {
         }
 
         // 토큰 생성
-        ERC404Token newContract = new ERC404Token(name, symbol, _DEFAULT_MAX_SUPPLY, address(this), address(this), tokenTreasuryAddress, taxPermil, imageURI_, trait_type_, trait_values_, images_);
-    
-        address contractAddress = address(newContract); 
+        address contractAddress = _tokenFactory.deployToken(
+            symbol,
+            name,
+            tokenTreasuryAddress,
+            taxPermil,
+            imageURI_,
+            trait_type_,
+            trait_values_,
+            images_
+        );
         
         // Already Deployed (AD)
         if (contractInfo[contractAddress].exists) {
@@ -150,6 +176,26 @@ contract LaunchPad is MaxGasPrice {
     function changeContractSaleStatus(address contractAddress) public onlyOwnerGroup onlyDeployed(contractAddress) returns (bool) {
         contractInfo[contractAddress].saleIsActive = !contractInfo[contractAddress].saleIsActive;
         return contractInfo[contractAddress].saleIsActive;
+    }
+
+    function _recordTransaction(
+        address user,
+        address tokenAddress,
+        string memory transactionType,
+        uint256 ethAmount,
+        uint256 tokenAmount,
+        uint256 totalSupplyAfter,
+        uint256 ethBalanceAfter
+    ) internal {
+        _transactionHistory.recordTransaction(
+            user,
+            tokenAddress,
+            transactionType,
+            ethAmount,
+            tokenAmount,
+            totalSupplyAfter,
+            ethBalanceAfter
+        );
     }
 
     function buyToken(address contractAddress) public payable validGasPrice returns (uint256) {
@@ -186,6 +232,16 @@ contract LaunchPad is MaxGasPrice {
         info.totalSupply += amount;
         // contract 누적 eth 집계
         info.ethDepositBalance += deposit;
+
+        _recordTransaction(
+            msg.sender,
+            contractAddress,
+            "BUY",
+            msg.value,
+            amount,
+            info.totalSupply,
+            info.ethDepositBalance
+        );
 
         //event require(amount >= (8억 - contractsTotalSupply[contractAddress] + (+/- 오차))))) 허용, 토큰 남은건 DEX로, 이더는 15% LaunchPad로
         if (info.totalSupply >= TARGET_FUNDRAISING_AMOUNT) {
@@ -226,7 +282,69 @@ contract LaunchPad is MaxGasPrice {
 
         emit TokenSold(msg.sender, amount);
 
+        _recordTransaction(
+            msg.sender,
+            contractAddress,
+            "SELL",
+            deposit,
+            amount,
+            info.totalSupply,
+            info.ethDepositBalance
+        );
+
         payable(msg.sender).transfer(deposit);
+    }
+
+    function getTokenTransactionHistory(address tokenAddress)
+        external
+        view
+        returns (ITransactionHistory.TransactionRecord[] memory)
+    {
+        return _transactionHistory.getTokenTransactionHistory(tokenAddress);
+    }
+
+    function getUserTransactionHistory(address user)
+        external
+        view
+        returns (ITransactionHistory.TransactionRecord[] memory)
+    {
+        return _transactionHistory.getUserTransactionHistory(user);
+    }
+
+    function getTokenTransactionHistoryPaginated(address tokenAddress, uint256 offset, uint256 limit)
+        external
+        view
+        returns (ITransactionHistory.TransactionRecord[] memory)
+    {
+        return _transactionHistory.getTokenTransactionHistoryPaginated(tokenAddress, offset, limit);
+    }
+
+    function getTokenTransactionCount(address tokenAddress) external view returns (uint256) {
+        return _transactionHistory.getTokenTransactionCount(tokenAddress);
+    }
+
+    function getUserTransactionCount(address user) external view returns (uint256) {
+        return _transactionHistory.getUserTransactionCount(user);
+    }
+
+    function getRecentTransactions(uint256 limit)
+        external
+        view
+        returns (ITransactionHistory.TransactionRecord[] memory)
+    {
+        return _transactionHistory.getRecentTransactions(limit);
+    }
+
+    function getTransactionByIndex(uint256 index)
+        external
+        view
+        returns (ITransactionHistory.TransactionRecord memory)
+    {
+        return _transactionHistory.getTransactionByIndex(index);
+    }
+
+    function getTotalTransactionCount() external view returns (uint256) {
+        return _transactionHistory.totalTransactions();
     }
 
 }
