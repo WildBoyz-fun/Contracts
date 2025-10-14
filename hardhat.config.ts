@@ -40,7 +40,13 @@ const config: HardhatUserConfig = {
     monad_testnet: {
       url: process.env.MONAD_RPC_URL || "",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-    }
+    },
+    hyperliquid_testnet: {
+      url: process.env.HYPERLIQUID_RPC_URL || "",
+      chainId: 998,
+      gas: 8_000_000,
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+    },
   }
 };
 

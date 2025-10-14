@@ -22,6 +22,23 @@ LiquidityProviderModule#LiquidityProvider - 0x92B99862fF958ff2707201977073fe03B0
 
 > npm install --save-dev @nomicfoundation/hardhat-verify 
 
+# Hyperliquid (HyperEVM) deployment notes
+
+- HyperEVM 기본 블록은 Small Block(가스 한도 2,000,000)이라 복잡한 컨트랙트 배포가 실패할 수 있습니다.
+- `HYPERLIQUID_PRIVATE_KEY` (또는 `PRIVATE_KEY`) 환경 변수를 설정한 뒤 아래 스크립트로 Big Block 모드로 전환하세요:
+
+```bash
+npm run hyperliquid:block:big
+```
+
+- 배포를 마쳤다면 필요에 따라 Small Block 모드로 복구할 수 있습니다:
+
+```bash
+npm run hyperliquid:block:small
+```
+
+- Big Block 전환은 LayerZero CLI(`@layerzerolabs/hyperliquid-composer`)를 사용하며, 내부적으로 Hyperliquid 메인넷에 트랜잭션을 전송합니다. 실행 전에 메인넷 계정과 서명 키가 준비돼 있어야 합니다.
+- 블록 전환 후에는 Hardhat/Foundry 배포를 실행하면 됩니다. 검증은 https://testnet.purrsec.com/verify 를 참고하세요.
 
 
 # DEPLOYMENT, VERIFICATION (Using HardHat) ==> 메인넷 정하면... 다시 업데이트

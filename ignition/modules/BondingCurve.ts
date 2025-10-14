@@ -4,10 +4,11 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
 const BondingCurveModule = buildModule("BondingCurveModule", (m) => {
-  const bondingCurve = m.contract("BondingCurve");
+  const bancorFormula = m.contract("BancorFormula");
+  const bondingCurve = m.contract("BondingCurve", [bancorFormula]);
 
   console.log(`bondingCurve: ${bondingCurve}`)
-  return { bondingCurve };
+  return { bondingCurve, bancorFormula };
 });
 
 export default BondingCurveModule;

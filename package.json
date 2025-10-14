@@ -20,6 +20,8 @@
   "scripts": {
     "test": "mocha",
     "compile": "hardhat compile",
+    "hyperliquid:block:big": "node scripts/hyperliquid-block.js big",
+    "hyperliquid:block:small": "node scripts/hyperliquid-block.js small",
     "deploy:monad": "hardhat ignition deploy ignition/modules/DeployContract.ts --network monad_testnet --deployment-id production",
     "verify:monad": "hardhat verify --network monad_testnet"
   },

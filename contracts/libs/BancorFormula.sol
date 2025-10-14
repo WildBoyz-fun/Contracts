@@ -234,7 +234,7 @@ contract BancorFormula is Power {
         uint256 _connectorBalance,
         uint32 _connectorWeight,
         uint256 _depositAmount
-    ) internal view returns (uint256) {
+    ) public view returns (uint256) {
         // validate input
         require(_supply > 0 && _connectorBalance > 0 && _connectorWeight > 0 && _connectorWeight <= MAX_WEIGHT);
         // special case for 0 deposit amount
@@ -260,7 +260,7 @@ contract BancorFormula is Power {
         uint256 _connectorBalance,
         uint32 _connectorWeight,
         uint256 _tokenAmount
-    ) internal view returns (uint256) {
+    ) public view returns (uint256) {
         // validate input
         require(_supply > 0 && _connectorBalance > 0 && _connectorWeight > 0 && _connectorWeight <= MAX_WEIGHT);
         // special case for 0 deposit amount
@@ -299,7 +299,7 @@ contract BancorFormula is Power {
         uint256 _connectorBalance,
         uint32 _connectorWeight,
         uint256 _sellAmount
-    ) internal view returns (uint256) {
+    ) public view returns (uint256) {
         // validate input
         require(_supply > 0 && _connectorBalance > 0 && _connectorWeight > 0 && _connectorWeight <= MAX_WEIGHT && _sellAmount <= _supply);
         // special case for 0 sell amount

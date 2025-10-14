@@ -8,7 +8,8 @@ describe("BondingCurve", function () {
 
 
     async function deployBondingCurve() {
-        const bondingCurve = await hre.ethers.deployContract("BondingCurve")
+        const formula = await hre.ethers.deployContract("BancorFormula");
+        const bondingCurve = await hre.ethers.deployContract("BondingCurve", [await formula.getAddress()]);
 
         return { bondingCurve };
     }

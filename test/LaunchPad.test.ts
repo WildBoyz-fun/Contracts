@@ -12,23 +12,28 @@ describe("LaunchPad", function () {
     async function initParams() {
         const [owner] = await hre.ethers.getSigners();
         
-        const bondingCurve = await hre.ethers.deployContract("BondingCurve")
+        const formula = await hre.ethers.deployContract("BancorFormula");
+        const bondingCurve = await hre.ethers.deployContract("BondingCurve", [await formula.getAddress()]);
         const ownerGroupContract = await hre.ethers.deployContract("OwnerGroupContract", [[owner.address]])
         const launchPadTokenTreasury = await hre.ethers.deployContract("LaunchPanTokenTreasury", [await ownerGroupContract.getAddress()])
         
         const launchPad = await hre.ethers.deployContract("LaunchPad", [await launchPadTokenTreasury.getAddress(), await bondingCurve.getAddress(), await ownerGroupContract.getAddress()])
+        const launchPadView = await hre.ethers.deployContract("LaunchPadView")
 
         params = new TokenParams();
-        return { launchPad, params };
+        return { launchPad, launchPadView, params };
     }
 
     describe("Contract Deploy And Status Check", function () {
         it("contract must be deployed before checking status", async function () {
-            const { launchPad, params} = await loadFixture(initParams);
+            const { launchPad, launchPadView, params} = await loadFixture(initParams);
         
             const fakeContractAddress = ethers.Wallet.createRandom().address;
             
-            await expect(launchPad.getContractSaleStatus(fakeContractAddress)).to.be.revertedWith("CND");
+            await expect(launchPadView.getContractSaleStatus(await launchPad.getAddress(), fakeContractAddress)).to.be.revertedWithCustomError(
+                launchPadView,
+                "LaunchPadViewNotDeployed"
+            );
         });
 
         it("contract is deployed. Checking Owner and Contract is On Sale", async function () {
@@ -63,7 +68,7 @@ describe("LaunchPad", function () {
         });
 
         it("contract is deployed. Checking Owner and Contract is On Sale", async function () {
-            const { launchPad } = await loadFixture(initParams);
+            const { launchPad, launchPadView } = await loadFixture(initParams);
         
             const [owner] = await hre.ethers.getSigners();
 
@@ -90,11 +95,11 @@ describe("LaunchPad", function () {
             
             expect(event?.args.deployedBy).to.equals(owner.address);
 
-            expect(await launchPad.getContractSaleStatus(contractAddress)).to.equals(true);
+            expect(await launchPadView.getContractSaleStatus(await launchPad.getAddress(), contractAddress)).to.equals(true);
         });
 
         it("contract is deployed. Contract Sale is halted", async function () {
-            const { launchPad } = await loadFixture(initParams);
+            const { launchPad, launchPadView } = await loadFixture(initParams);
         
             const [owner] = await hre.ethers.getSigners();
 
@@ -131,7 +136,7 @@ describe("LaunchPad", function () {
         });
 
         it("contract is deployed. Contract Count 1", async function () {
-            const { launchPad } = await loadFixture(initParams);
+            const { launchPad, launchPadView } = await loadFixture(initParams);
         
             const [owner] = await hre.ethers.getSigners();
 
@@ -158,12 +163,13 @@ describe("LaunchPad", function () {
             
             expect(event?.args.deployedBy).to.equals(owner.address);
             
-            expect(await launchPad.getLaunchedContractCount()).to.equals(1);
+            const launched = await launchPadView.getLaunchedTokenContracts(await launchPad.getAddress());
+            expect(launched.length).to.equals(1);
             
         });
 
         it("should return all launched token contracts", async function () {
-            const { launchPad, params } = await loadFixture(initParams);
+            const { launchPad, launchPadView, params } = await loadFixture(initParams);
         
             // Create first token
             const tx1 = await launchPad.createBioDiversityERC404Token(
@@ -203,15 +209,15 @@ describe("LaunchPad", function () {
                         .find(e => e?.name === "ContractDeployed");
             const contractAddress2 = event2?.args.contractAddress;
 
-            const launchedContracts = await launchPad.getLaunchedTokenContracts();
+            const launchedContracts = await launchPadView.getLaunchedTokenContracts(await launchPad.getAddress());
 
             expect(launchedContracts.length).to.equal(2);
-            expect(launchedContracts[0]).to.equal(contractAddress1);
-            expect(launchedContracts[1]).to.equal(contractAddress2);
+            expect(launchedContracts[0].tokenAddress).to.equal(contractAddress1);
+            expect(launchedContracts[1].tokenAddress).to.equal(contractAddress2);
         });
 
         it("should return contracts deployed by a specific user", async function () {
-            const { launchPad, params } = await loadFixture(initParams);
+            const { launchPad, launchPadView, params } = await loadFixture(initParams);
             const [owner, otherAccount] = await hre.ethers.getSigners();
 
             // Create first token with owner
@@ -252,8 +258,8 @@ describe("LaunchPad", function () {
                         .find(e => e?.name === "ContractDeployed");
             const contractAddress2 = event2?.args.contractAddress;
 
-            const ownerContracts = await launchPad.getContractsDeployedBy(owner.address);
-            const otherAccountContracts = await launchPad.getContractsDeployedBy(otherAccount.address);
+            const ownerContracts = await launchPadView.getContractsDeployedBy(await launchPad.getAddress(), owner.address);
+            const otherAccountContracts = await launchPadView.getContractsDeployedBy(await launchPad.getAddress(), otherAccount.address);
 
             expect(ownerContracts.length).to.equal(1);
             expect(ownerContracts[0]).to.equal(contractAddress1);
@@ -412,7 +418,7 @@ describe("LaunchPad", function () {
         });
 
         it("Get AmountToPurchase", async function () {
-            const { launchPad } = await loadFixture(initParams);
+            const { launchPad, launchPadView } = await loadFixture(initParams);
         
             const [owner, buyer] = await hre.ethers.getSigners();
 
@@ -439,7 +445,8 @@ describe("LaunchPad", function () {
             const contractAddress = event?.args.contractAddress;
         
             expect(event?.args.deployedBy).to.equals(owner.address)    
-            expect(await launchPad.getLaunchedContractCount()).to.equals(1);
+            const launchedContracts = await launchPadView.getLaunchedTokenContracts(await launchPad.getAddress());
+            expect(launchedContracts.length).to.equals(1);
 
              const erc404Token = await hre.ethers.getContractAt("IERC404", contractAddress);
              const totalSupply = await erc404Token.totalSupply();       
@@ -455,7 +462,7 @@ describe("LaunchPad", function () {
              .map(log => launchPad.interface.parseLog(log))
              .find(e => e?.name === "TokensPurchased");
 
-            const amount = await launchPad.calculatePurchaseBalance(contractAddress, ethers.parseEther("0.01"));
+            const amount = await launchPadView.calculatePurchaseBalance(await launchPad.getAddress(), contractAddress, ethers.parseEther("0.01"));
 
             console.log(`Amount To Purhcase: ${parseFloat(hre.ethers.formatEther(amount))}`);
             
