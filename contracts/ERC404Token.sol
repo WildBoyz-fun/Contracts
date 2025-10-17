@@ -11,7 +11,6 @@ contract ERC404Token is Ownable, ERC404U16 {
   address private _tokenTreasury;
   uint256 private _taxPermil;
 
-  string public dataURI;
   string public baseTokenURI;
   string[5] private images;
   string[6] private trait_values;
@@ -24,7 +23,6 @@ contract ERC404Token is Ownable, ERC404U16 {
     address initialMintRecipient_,
     address tokenTreasury_,
     uint256 taxPermil_,
-    string memory imageURI_,
     string memory trait_type_,
     string[5] memory trait_values_,
     string[5] memory images_
@@ -35,7 +33,6 @@ contract ERC404Token is Ownable, ERC404U16 {
     _tokenTreasury = tokenTreasury_;
     _taxPermil = taxPermil_;
     // set default trait and image values
-    dataURI = imageURI_;
     trait_values = [
       trait_values_[0],
       trait_values_[1],
@@ -63,10 +60,6 @@ contract ERC404Token is Ownable, ERC404U16 {
   function setTokenURI(string memory tokenURI_) public onlyOwner {
     // token file only. (not json type and rarity values)
     baseTokenURI = tokenURI_;
-  }
-
-  function setDataURI(string memory dataURI_) public onlyOwner {
-    dataURI = dataURI_;
   }
 
   function setTraitTypeValues(
@@ -143,7 +136,7 @@ contract ERC404Token is Ownable, ERC404U16 {
             '","description":"A collection of 1,000 Replicants enabled by ERC404, an experimental token standard.",',
             '"external_url":"https://oops4.fun/","image":"')
         ),
-        string.concat(dataURI, image)
+        image
       );
       string memory jsonPostImage = string.concat(
         string.concat(

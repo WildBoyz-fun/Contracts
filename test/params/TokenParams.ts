@@ -6,7 +6,6 @@ export class TokenParams {
   symbol: string;
   name: string;
   taxPermil: bigint;
-  imageURI: string;
   traitType: string;
   traitValues: [string, string, string, string, string];
   images: [string, string, string, string, string];
@@ -17,9 +16,14 @@ export class TokenParams {
     this.symbol = "MT";
     this.name = "MyToken";
     this.taxPermil = 50n;
-    this.imageURI = "test-image-uri";
     this.traitType = "Green";
     this.traitValues = ["Green", "Blue", "Purple", "Orange", "Red"];
-    this.images = ["img1", "img2", "img3", "img4", "img5"];
+    this.images = [
+      "https://example.com/img1.png",
+      "https://example.com/img2.png",
+      "https://example.com/img3.png",
+      "https://example.com/img4.png",
+      "https://example.com/img5.png"
+    ];
   }
 }

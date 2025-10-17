@@ -43,7 +43,6 @@ describe("LaunchPad", function () {
                 params.symbol,
                 params.name,
                 params.taxPermil,
-                params.imageURI,
                 params.traitType,
                 params.traitValues,
                 params.images,
@@ -74,7 +73,6 @@ describe("LaunchPad", function () {
                 params.symbol,
                 params.name,
                 params.taxPermil,
-                params.imageURI,
                 params.traitType,
                 params.traitValues,
                 params.images,
@@ -105,7 +103,6 @@ describe("LaunchPad", function () {
                 params.symbol,
                 params.name,
                 params.taxPermil,
-                params.imageURI,
                 params.traitType,
                 params.traitValues,
                 params.images,
@@ -143,7 +140,6 @@ describe("LaunchPad", function () {
                 params.symbol,
                 params.name,
                 params.taxPermil,
-                params.imageURI,
                 params.traitType,
                 params.traitValues,
                 params.images,
@@ -172,7 +168,6 @@ describe("LaunchPad", function () {
                 "TK1",
                 "Token 1",
                 params.taxPermil,
-                params.imageURI,
                 params.traitType,
                 params.traitValues,
                 params.images,
@@ -191,7 +186,6 @@ describe("LaunchPad", function () {
                 "TK2",
                 "Token 2",
                 params.taxPermil,
-                params.imageURI,
                 params.traitType,
                 params.traitValues,
                 params.images,
@@ -206,8 +200,8 @@ describe("LaunchPad", function () {
             const launchedContracts = await launchPad.getLaunchedTokenContracts();
 
             expect(launchedContracts.length).to.equal(2);
-            expect(launchedContracts[0]).to.equal(contractAddress1);
-            expect(launchedContracts[1]).to.equal(contractAddress2);
+            expect(launchedContracts[0].tokenAddress).to.equal(contractAddress1);
+            expect(launchedContracts[1].tokenAddress).to.equal(contractAddress2);
         });
 
         it("should return contracts deployed by a specific user", async function () {
@@ -221,7 +215,6 @@ describe("LaunchPad", function () {
                 "TK1",
                 "Token 1",
                 params.taxPermil,
-                params.imageURI,
                 params.traitType,
                 params.traitValues,
                 params.images,
@@ -240,7 +233,6 @@ describe("LaunchPad", function () {
                 "TK2",
                 "Token 2",
                 params.taxPermil,
-                params.imageURI,
                 params.traitType,
                 params.traitValues,
                 params.images,
@@ -280,7 +272,6 @@ describe("LaunchPad", function () {
                 params.symbol,
                 params.name,
                 params.taxPermil,
-                params.imageURI,
                 params.traitType,
                 params.traitValues,
                 params.images,
@@ -350,7 +341,6 @@ describe("LaunchPad", function () {
                 params.symbol,
                 params.name,
                 params.taxPermil,
-                params.imageURI,
                 params.traitType,
                 params.traitValues,
                 params.images,
@@ -424,7 +414,6 @@ describe("LaunchPad", function () {
                 params.symbol,
                 params.name,
                 params.taxPermil,
-                params.imageURI,
                 params.traitType,
                 params.traitValues,
                 params.images,

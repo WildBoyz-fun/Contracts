@@ -18,10 +18,15 @@ describe("ERC404Token", function () {
       owner.address,
       treasury.address,
       taxPermil,
-      "https://example.com/",
       "Color",
       ["Green", "Blue", "Purple", "Orange", "Red"],
-      ["1.gif", "2.gif", "3.gif", "4.gif", "5.gif"]
+      [
+        "https://example.com/1.gif",
+        "https://example.com/2.gif",
+        "https://example.com/3.gif",
+        "https://example.com/4.gif",
+        "https://example.com/5.gif"
+      ]
     ]);
 
     return { erc404, owner, user, treasury };
@@ -35,8 +40,7 @@ describe("ERC404Token", function () {
       expect(await erc404.symbol()).to.equal("TT");
       expect(await erc404.erc20BalanceOf(owner.address)).to.equal(initialSupply);
       expect(await erc404.owner()).to.equal(owner.address);
-      expect(await erc404.dataURI()).to.include("https://example.com/");
-    });
+  });
   });
 
   describe("ERC20/ERC721 기능", function () {
@@ -94,10 +98,13 @@ describe("ERC404Token", function () {
       expect(tokenURI).to.include('"trait_type":"Color"');
     });
 
-    it("이미지 URI 설정 업데이트", async function () {
-      const { erc404 } = await loadFixture(deployERC404Fixture);
-      await erc404.setDataURI("https://new.example.com/");
-      expect(await erc404.dataURI()).to.equal("https://new.example.com/");
+    it("이미지 URI는 각 희귀도별 개별 URL을 사용", async function () {
+      const { erc404, owner, user } = await loadFixture(deployERC404Fixture);
+      await erc404.transfer(user.address, ethers.parseEther("2000000"));
+
+      const ownedTokens = await erc404.owned(user.address);
+      const tokenURI = await erc404.tokenURI(ownedTokens[0]);
+      expect(tokenURI).to.include("https://example.com/");
     });
   });
 
