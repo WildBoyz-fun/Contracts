@@ -128,9 +128,10 @@ contract LaunchPad is MaxGasPrice {
         string memory symbol,
         string memory name,
         uint256 taxPermil,
+        string memory mainImage_,
         string memory trait_type_,
         string[5] memory trait_values_,
-        string[5] memory images_
+        string[5] memory metadataURIs_
     ) public payable returns (address) {
         require(msg.value == _TOKEN_CREATION_FEE, "Creation fee is 0.001 ETH");
 
@@ -138,7 +139,18 @@ contract LaunchPad is MaxGasPrice {
         require(feeTransferred, "Fee transfer failed");
 
         // 토큰 생성
-        ERC404Token newContract = new ERC404Token(name, symbol, _DEFAULT_MAX_SUPPLY, address(this), address(this), tokenTreasuryAddress, taxPermil, trait_type_, trait_values_, images_);
+        ERC404Token newContract = new ERC404Token(
+            name,
+            symbol,
+            _DEFAULT_MAX_SUPPLY,
+            address(this),
+            address(this),
+            tokenTreasuryAddress,
+            taxPermil,
+            trait_type_,
+            trait_values_,
+            metadataURIs_
+        );
     
         address contractAddress = address(newContract); 
         
@@ -159,7 +171,7 @@ contract LaunchPad is MaxGasPrice {
             tokenAddress: contractAddress,
             symbol: symbol,
             name: name,
-            mainImage: images_[0]
+            mainImage: mainImage_
         }));
         userDeployedContracts[msg.sender].push(contractAddress);
         

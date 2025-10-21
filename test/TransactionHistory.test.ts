@@ -31,9 +31,10 @@ describe("LaunchPad - Transaction History", function () {
                 params.symbol,
                 params.name,
                 params.taxPermil,
+                params.mainImage,
                 params.traitType,
                 params.traitValues,
-                params.images,
+                params.metadataURIs,
                 { value: ethers.parseEther("0.001") }
             );
             const createReceipt = await createTx.wait();
@@ -165,9 +166,10 @@ describe("LaunchPad - Transaction History", function () {
                 params.symbol,
                 params.name,
                 params.taxPermil,
+                params.mainImage,
                 params.traitType,
                 params.traitValues,
-                params.images,
+                params.metadataURIs,
                 { value: ethers.parseEther("0.001") }
             );
             const createReceipt = await createTx.wait();

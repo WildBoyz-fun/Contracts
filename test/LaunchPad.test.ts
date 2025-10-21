@@ -43,9 +43,10 @@ describe("LaunchPad", function () {
                 params.symbol,
                 params.name,
                 params.taxPermil,
+                params.mainImage,
                 params.traitType,
                 params.traitValues,
-                params.images,
+                params.metadataURIs,
                 { value: ethers.parseEther("0.001") }
             );
             const receipt = await tx.wait();
@@ -73,9 +74,10 @@ describe("LaunchPad", function () {
                 params.symbol,
                 params.name,
                 params.taxPermil,
+                params.mainImage,
                 params.traitType,
                 params.traitValues,
-                params.images,
+                params.metadataURIs,
                 { value: ethers.parseEther("0.001") }
             );
             const receipt = await tx.wait();
@@ -103,9 +105,10 @@ describe("LaunchPad", function () {
                 params.symbol,
                 params.name,
                 params.taxPermil,
+                params.mainImage,
                 params.traitType,
                 params.traitValues,
-                params.images,
+                params.metadataURIs,
                 { value: ethers.parseEther("0.001") }
             );
             const receipt = await tx.wait();
@@ -140,9 +143,10 @@ describe("LaunchPad", function () {
                 params.symbol,
                 params.name,
                 params.taxPermil,
+                params.mainImage,
                 params.traitType,
                 params.traitValues,
-                params.images,
+                params.metadataURIs,
                 { value: ethers.parseEther("0.001") }
             );
             const receipt = await tx.wait();
@@ -168,9 +172,10 @@ describe("LaunchPad", function () {
                 "TK1",
                 "Token 1",
                 params.taxPermil,
+                params.mainImage,
                 params.traitType,
                 params.traitValues,
-                params.images,
+                params.metadataURIs,
                 { value: ethers.parseEther("0.001") }
             );
             const receipt1 = await tx1.wait();
@@ -186,9 +191,10 @@ describe("LaunchPad", function () {
                 "TK2",
                 "Token 2",
                 params.taxPermil,
+                params.mainImage,
                 params.traitType,
                 params.traitValues,
-                params.images,
+                params.metadataURIs,
                 { value: ethers.parseEther("0.001") }
             );
             const receipt2 = await tx2.wait();
@@ -215,9 +221,10 @@ describe("LaunchPad", function () {
                 "TK1",
                 "Token 1",
                 params.taxPermil,
+                params.mainImage,
                 params.traitType,
                 params.traitValues,
-                params.images,
+                params.metadataURIs,
                 { value: ethers.parseEther("0.001") }
             );
             const receipt1 = await tx1.wait();
@@ -233,9 +240,10 @@ describe("LaunchPad", function () {
                 "TK2",
                 "Token 2",
                 params.taxPermil,
+                params.mainImage,
                 params.traitType,
                 params.traitValues,
-                params.images,
+                params.metadataURIs,
                 { value: ethers.parseEther("0.001") }
             );
             const receipt2 = await tx2.wait();
@@ -272,9 +280,10 @@ describe("LaunchPad", function () {
                 params.symbol,
                 params.name,
                 params.taxPermil,
+                params.mainImage,
                 params.traitType,
                 params.traitValues,
-                params.images,
+                params.metadataURIs,
                 { value: ethers.parseEther("0.001") }
             );
             const receipt = await tx.wait();
@@ -341,9 +350,10 @@ describe("LaunchPad", function () {
                 params.symbol,
                 params.name,
                 params.taxPermil,
+                params.mainImage,
                 params.traitType,
                 params.traitValues,
-                params.images,
+                params.metadataURIs,
                 { value: ethers.parseEther("0.001") }
             );
             const receipt = await tx.wait();
@@ -414,9 +424,10 @@ describe("LaunchPad", function () {
                 params.symbol,
                 params.name,
                 params.taxPermil,
+                params.mainImage,
                 params.traitType,
                 params.traitValues,
-                params.images,
+                params.metadataURIs,
                 { value: ethers.parseEther("0.001") }
             );
             const receipt = await tx.wait();

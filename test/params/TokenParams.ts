@@ -8,7 +8,8 @@ export class TokenParams {
   taxPermil: bigint;
   traitType: string;
   traitValues: [string, string, string, string, string];
-  images: [string, string, string, string, string];
+  mainImage: string;
+  metadataURIs: [string, string, string, string, string];
 
   constructor() {
     this.tokenTreasuryAddress = ethers.Wallet.createRandom().address;
@@ -18,12 +19,13 @@ export class TokenParams {
     this.taxPermil = 50n;
     this.traitType = "Green";
     this.traitValues = ["Green", "Blue", "Purple", "Orange", "Red"];
-    this.images = [
-      "https://example.com/img1.png",
-      "https://example.com/img2.png",
-      "https://example.com/img3.png",
-      "https://example.com/img4.png",
-      "https://example.com/img5.png"
+    this.mainImage = "https://example.com/img1.png";
+    this.metadataURIs = [
+      "https://gateway.pinata.cloud/ipfs/example1.json",
+      "https://gateway.pinata.cloud/ipfs/example2.json",
+      "https://gateway.pinata.cloud/ipfs/example3.json",
+      "https://gateway.pinata.cloud/ipfs/example4.json",
+      "https://gateway.pinata.cloud/ipfs/example5.json"
     ];
   }
 }

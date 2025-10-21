@@ -6,6 +6,13 @@ import { ethers } from "hardhat";
 describe("ERC404Token", function () {
   const initialSupply = ethers.parseEther("800000000");  
   const taxPermil = 50; // 5%
+  const defaultMetadataURIs = [
+    "https://gateway.pinata.cloud/ipfs/example1.json",
+    "https://gateway.pinata.cloud/ipfs/example2.json",
+    "https://gateway.pinata.cloud/ipfs/example3.json",
+    "https://gateway.pinata.cloud/ipfs/example4.json",
+    "https://gateway.pinata.cloud/ipfs/example5.json"
+  ];
 
   async function deployERC404Fixture() {
     const [owner, user, treasury] = await hre.ethers.getSigners();
@@ -20,13 +27,7 @@ describe("ERC404Token", function () {
       taxPermil,
       "Color",
       ["Green", "Blue", "Purple", "Orange", "Red"],
-      [
-        "https://example.com/1.gif",
-        "https://example.com/2.gif",
-        "https://example.com/3.gif",
-        "https://example.com/4.gif",
-        "https://example.com/5.gif"
-      ]
+      defaultMetadataURIs
     ]);
 
     return { erc404, owner, user, treasury };
@@ -85,26 +86,39 @@ describe("ERC404Token", function () {
   });
 
   describe("메타데이터 기능", function () {
-    it("토큰 ID 기반 메타데이터 생성", async function () {
+    it("희귀도에 따른 Pinata 메타데이터 URI 반환", async function () {
       const { erc404, owner, user } = await loadFixture(deployERC404Fixture);
       await erc404.transfer(user.address, ethers.parseEther("2000000"));
 
       const ownedTokens = await erc404.owned(user.address);
-      //console.log(ownedTokens);
-      //console.log(ownedTokens.length);
       const ownedTokenId = ownedTokens[0];
       const tokenURI = await erc404.tokenURI(ownedTokenId);
-      expect(tokenURI).to.include("data:application/json;utf8");
-      expect(tokenURI).to.include('"trait_type":"Color"');
+      expect(defaultMetadataURIs).to.include(tokenURI);
     });
 
-    it("이미지 URI는 각 희귀도별 개별 URL을 사용", async function () {
+    it("메타데이터 URI 재설정 시 신규 URI 사용", async function () {
       const { erc404, owner, user } = await loadFixture(deployERC404Fixture);
       await erc404.transfer(user.address, ethers.parseEther("2000000"));
 
       const ownedTokens = await erc404.owned(user.address);
+      const newMetadataURIs = [
+        "https://gateway.pinata.cloud/ipfs/new1.json",
+        "https://gateway.pinata.cloud/ipfs/new2.json",
+        "https://gateway.pinata.cloud/ipfs/new3.json",
+        "https://gateway.pinata.cloud/ipfs/new4.json",
+        "https://gateway.pinata.cloud/ipfs/new5.json"
+      ];
+
+      await erc404.setMetadataURIs(
+        newMetadataURIs[0],
+        newMetadataURIs[1],
+        newMetadataURIs[2],
+        newMetadataURIs[3],
+        newMetadataURIs[4]
+      );
+
       const tokenURI = await erc404.tokenURI(ownedTokens[0]);
-      expect(tokenURI).to.include("https://example.com/");
+      expect(newMetadataURIs).to.include(tokenURI);
     });
   });
 

@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {ERC404U16} from "./libs/ERC404/ERC404U16.sol";
 
 contract ERC404Token is Ownable, ERC404U16 {
@@ -11,8 +10,7 @@ contract ERC404Token is Ownable, ERC404U16 {
   address private _tokenTreasury;
   uint256 private _taxPermil;
 
-  string public baseTokenURI;
-  string[5] private images;
+  string[5] private metadataURIs;
   string[6] private trait_values;
 
   constructor(
@@ -25,7 +23,7 @@ contract ERC404Token is Ownable, ERC404U16 {
     uint256 taxPermil_,
     string memory trait_type_,
     string[5] memory trait_values_,
-    string[5] memory images_
+    string[5] memory metadataURIs_
   ) ERC404U16(name_, symbol_, 18) Ownable(initialOwner_) {
     // Do not mint the ERC721s to the initial owner, as it's a waste of gas.
     _setERC721TransferExempt(initialMintRecipient_, true);
@@ -41,13 +39,7 @@ contract ERC404Token is Ownable, ERC404U16 {
       trait_values_[4],
       trait_type_];
     // ["Green","Blue","Purple","Orange","Red","Color"]
-    images = [
-      images_[0],
-      images_[1],
-      images_[2],
-      images_[3],
-      images_[4]];
-    // ["1.gif","2.gif","3.gif","4.gif","5.gif"]
+    _setMetadataURIsInternal(metadataURIs_);
   }
 
   function setERC721TransferExempt(
@@ -55,11 +47,6 @@ contract ERC404Token is Ownable, ERC404U16 {
     bool value_
   ) external onlyOwner {
     _setERC721TransferExempt(account_, value_);
-  }
-
-  function setTokenURI(string memory tokenURI_) public onlyOwner {
-    // token file only. (not json type and rarity values)
-    baseTokenURI = tokenURI_;
   }
 
   function setTraitTypeValues(
@@ -77,16 +64,29 @@ contract ERC404Token is Ownable, ERC404U16 {
     trait_values[4] = trait_value5_;
   }
 
-  function setRarityImages(
-    string memory img1_, string memory img2_,
-    string memory img3_, string memory img4_,
-    string memory img5_
+  function setMetadataURIs(
+    string memory uri1_,
+    string memory uri2_,
+    string memory uri3_,
+    string memory uri4_,
+    string memory uri5_
   ) public onlyOwner {
-    images[0] = img1_;
-    images[1] = img2_;
-    images[2] = img3_;
-    images[3] = img4_;
-    images[4] = img5_;
+    string[5] memory uris = [uri1_, uri2_, uri3_, uri4_, uri5_];
+    _setMetadataURIsInternal(uris);
+  }
+
+  function _setMetadataURIsInternal(string[5] memory metadataURIs_) internal {
+    metadataURIs = [
+      metadataURIs_[0],
+      metadataURIs_[1],
+      metadataURIs_[2],
+      metadataURIs_[3],
+      metadataURIs_[4]
+    ];
+
+    for (uint256 i = 0; i < metadataURIs.length; i++) {
+      require(bytes(metadataURIs[i]).length > 0, "Metadata URI missing");
+    }
   }
 
   function tokenURI(uint256 id_) public view override returns (string memory) {
@@ -97,68 +97,24 @@ contract ERC404Token is Ownable, ERC404U16 {
         id16_ = id_;
     }
 
-    if (bytes(baseTokenURI).length > 0) {
-      return string.concat(baseTokenURI, Strings.toString(id16_));
+    uint8 seed = uint8(bytes1(keccak256(abi.encodePacked(id16_))));
+    uint8 rarityIndex;
+
+    if (seed <= 100) {
+      rarityIndex = 0;
+    } else if (seed <= 160) {
+      rarityIndex = 1;
+    } else if (seed <= 210) {
+      rarityIndex = 2;
+    } else if (seed <= 240) {
+      rarityIndex = 3;
     } else {
-      uint8 seed = uint8(bytes1(keccak256(abi.encodePacked(id16_))));
-      string memory image;
-      string memory color;
-
-      if (seed <= 100) {
-        image = images[0];
-        color = trait_values[0];
-      } else if (seed <= 160) {
-        image = images[1];
-        color = trait_values[1];
-      } else if (seed <= 210) {
-        image = images[2];
-        color = trait_values[2];
-      } else if (seed <= 240) {
-        image = images[3];
-        color = trait_values[3];
-      } else if (seed <= 255) {
-        image = images[4];
-        color = trait_values[4];
-      }
-
-      string memory jsonPreImage = string.concat(
-        string.concat(
-          string.concat(
-            string.concat(
-              '{"name": "',
-              name),
-            string.concat(
-              '#',
-              Strings.toString(id16_)
-            )
-          ),
-          string.concat(
-            '","description":"A collection of 1,000 Replicants enabled by ERC404, an experimental token standard.",',
-            '"external_url":"https://oops4.fun/","image":"')
-        ),
-        image
-      );
-      string memory jsonPostImage = string.concat(
-        string.concat(
-            '","attributes":[{"trait_type":"',
-            trait_values[5]
-        ),
-        string.concat(
-            '","value":"',
-            color
-        )
-      );
-      string memory jsonPostTraits = '"}]}';
-
-      return
-        string.concat(
-          "data:application/json;utf8,",
-          string.concat(
-            string.concat(jsonPreImage, jsonPostImage),
-            jsonPostTraits
-          )
-        );
+      rarityIndex = 4;
     }
+
+    string memory metadataURI = metadataURIs[rarityIndex];
+    require(bytes(metadataURI).length > 0, "Metadata URI missing");
+    return metadataURI;
   }
 
   function ercTransferFromWithFee(
