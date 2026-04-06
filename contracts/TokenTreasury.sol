@@ -2,9 +2,10 @@
 pragma solidity ^0.8.24;
 
 import {IERC404} from "./libs/ERC404/interfaces/IERC404.sol";
+import {IOwnerGroupContract} from "./libs/IOwnerGroupContract.sol";
 
 contract TokenTreasury {
-    address public admin;
+    IOwnerGroupContract public ownerGroup;
     mapping(address => IERC404) public daoTokens;
 
     uint public proposalCount;
@@ -30,18 +31,16 @@ contract TokenTreasury {
     event RegisterDAOToken(address tokenAddress);
 
     modifier onlyAdmin() {
-        require(msg.sender == admin, "Not admin");
+        require(ownerGroup.isOwner(msg.sender), "Not admin");
         _;
     }
 
-    constructor(address owner) {
-        admin = owner;        
+    constructor(address ownerGroupAddress) {
+        ownerGroup = IOwnerGroupContract(ownerGroupAddress);
     }
 
     function registerDAOToken(address tokenAddress) public onlyAdmin {
-        
-        daoTokens[tokenAddress] = IERC404(tokenAddress);        
-        
+        daoTokens[tokenAddress] = IERC404(tokenAddress);
         emit RegisterDAOToken(tokenAddress);
     }
 
@@ -50,6 +49,7 @@ contract TokenTreasury {
 
     // 제안 생성
     function createProposal(address tokenAddress, string memory _desc, uint _amount, address payable _recipient, uint _votingPeriod) external returns (uint) {
+        require(address(daoTokens[tokenAddress]) != address(0), "Token not registered");
         require(daoTokens[tokenAddress].balanceOf(msg.sender) > 0, "Need DAO tokens to propose");
 
         proposalCount++;
@@ -85,15 +85,15 @@ contract TokenTreasury {
     }
 
     function checkVotingQualification(address tokenAddress) internal view returns (bool) {
-        // 최소 투표할 수 있는 404 토큰 보유량 설정
-        // balance × 100 >= total 1% 이상 토큰 홀더
-        return daoTokens[tokenAddress].balanceOf(msg.sender) * 100 > daoTokens[tokenAddress].totalSupply();
+        // 1% 이상 토큰 홀더만 투표 가능
+        uint256 totalSupply = daoTokens[tokenAddress].totalSupply();
+        if (totalSupply == 0) return false;
+        uint256 minBalance = totalSupply / 100;
+        return daoTokens[tokenAddress].balanceOf(msg.sender) >= minBalance;
     }
 
-    // need to implement 
-    // add onlyOnwer
-    // 제안 실행 샘플 코드
-    function executeProposal(uint _proposalId) external {
+    // 제안 실행 - Owner만 가능
+    function executeProposal(uint _proposalId) external onlyAdmin {
         Proposal storage p = proposals[_proposalId];
 
         require(block.timestamp >= p.deadline, "Voting not ended");
@@ -103,8 +103,8 @@ contract TokenTreasury {
 
         p.executed = true;
 
-        // 이더 출금
-        p.recipient.transfer(p.amount);
+        (bool success, ) = p.recipient.call{value: p.amount}("");
+        require(success, "ETH transfer failed");
 
         emit Executed(_proposalId);
     }

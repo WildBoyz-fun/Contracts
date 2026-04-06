@@ -1,17 +1,9 @@
-// This setup uses Hardhat Ignition to manage smart contract deployments.
-// Learn more about it at https://hardhat.org/ignition
-
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import * as dotenv from "dotenv";
-
-dotenv.config();
+import OwnerGroupModule from "./OwnerGroup";
 
 const TokenTreasuryModule = buildModule("TokenTreasuryModule", (m) => {
-  const ownerAddress = process.env.OWNER_ADDRESS;
-  console.log(`ownerAddress : ${ownerAddress}`);
-  const tokenTreasury = m.contract("TokenTreasury", [ownerAddress]);
-
-  console.log(`tokenTreasury: ${tokenTreasury}`)
+  const { ownerGroupContract } = m.useModule(OwnerGroupModule);
+  const tokenTreasury = m.contract("TokenTreasury", [ownerGroupContract]);
 
   return { tokenTreasury };
 });

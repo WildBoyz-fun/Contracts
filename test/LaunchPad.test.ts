@@ -11,12 +11,16 @@ describe("LaunchPad", function () {
 
     async function initParams() {
         const [owner] = await hre.ethers.getSigners();
-        
+
         const bondingCurve = await hre.ethers.deployContract("BondingCurve")
         const ownerGroupContract = await hre.ethers.deployContract("OwnerGroupContract", [[owner.address]])
         const launchPadTokenTreasury = await hre.ethers.deployContract("LaunchPanTokenTreasury", [await ownerGroupContract.getAddress()])
-        
+        const tokenFactory = await hre.ethers.deployContract("TokenFactory", [await ownerGroupContract.getAddress()])
+
         const launchPad = await hre.ethers.deployContract("LaunchPad", [await launchPadTokenTreasury.getAddress(), await bondingCurve.getAddress(), await ownerGroupContract.getAddress()])
+
+        await launchPad.connect(owner).setTokenFactory(await tokenFactory.getAddress());
+        await tokenFactory.connect(owner).setLaunchPad(await launchPad.getAddress());
 
         params = new TokenParams();
         return { launchPad, params };
@@ -307,7 +311,7 @@ describe("LaunchPad", function () {
             console.log(`[Before Token Purchased] buyerTokenBalance tokenBalance: ${buyerTokenBalance}`);
             
             // Buy tokens with 1 ETH
-            const buyTx = await launchPad.connect(buyer).buyToken(contractAddress, { value: ethers.parseEther("1"),});
+            const buyTx = await launchPad.connect(buyer).buyToken(contractAddress, 0, { value: ethers.parseEther("1"),});
             const buyReceipt = await buyTx.wait();
             
             // Assert event emitted
@@ -357,7 +361,7 @@ describe("LaunchPad", function () {
             console.log(`erc404Token TotalSupply: ${hre.ethers.formatUnits(totalSupply, 18)}`)
             
             // Buy tokens with 1 ETH
-            const buyTx = await launchPad.connect(buyer).buyToken(contractAddress, { value: ethers.parseEther("1"),});
+            const buyTx = await launchPad.connect(buyer).buyToken(contractAddress, 0, { value: ethers.parseEther("1"),});
             const buyReceipt = await buyTx.wait();
 
             // Assert event emitted
@@ -376,7 +380,7 @@ describe("LaunchPad", function () {
             const sellAmount = 100_000n
             await erc404Token.connect(buyer).approve(await launchPad.getAddress(), sellAmount);
 
-            const sellTx = await launchPad.connect(buyer).sellToken(contractAddress, sellAmount);
+            const sellTx = await launchPad.connect(buyer).sellToken(contractAddress, sellAmount, 0);
             const sellReceipt = await sellTx.wait();
 
     
@@ -432,7 +436,7 @@ describe("LaunchPad", function () {
              console.log(`TotalSupply: ${hre.ethers.formatUnits(totalSupply, 18)}`)
              
              // Buy tokens with 1 ETH
-             const buyTx = await launchPad.connect(buyer).buyToken(contractAddress, { value: ethers.parseEther("1"),});
+             const buyTx = await launchPad.connect(buyer).buyToken(contractAddress, 0, { value: ethers.parseEther("1"),});
              const buyReceipt = await buyTx.wait();
  
              // Assert event emitted

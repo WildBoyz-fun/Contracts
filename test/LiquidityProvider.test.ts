@@ -3,59 +3,91 @@ import hre from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers"
 
 describe("LiquidityProvider", function () {
-    const uniswapV2FactoryAddress = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"
-    const uniswapV2RouterAddress = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
 
     async function deployLiquidityProvider() {
-        const factory = await hre.ethers.getContractAt("UniswapV2Factory", uniswapV2FactoryAddress)
+        const [owner, other] = await hre.ethers.getSigners();
 
-        const router = await hre.ethers.getContractAt("UniswapV2Router02", uniswapV2RouterAddress)
+        const factory = await hre.ethers.deployContract("MockUniswapV2Factory");
+        const weth = await hre.ethers.deployContract("MockWETH");
+        const router = await hre.ethers.deployContract("MockUniswapV2Router", [
+            await factory.getAddress(),
+            await weth.getAddress()
+        ]);
+        const ownerGroupContract = await hre.ethers.deployContract("OwnerGroupContract", [[owner.address]]);
 
-        const liquidityProvider = await hre.ethers.deployContract("LiquidityProvider", [await router.getAddress()]);
+        const liquidityProvider = await hre.ethers.deployContract("LiquidityProvider", [
+            await router.getAddress(),
+            await ownerGroupContract.getAddress()
+        ]);
+
+        // Set owner as launchPad for direct testing
+        await liquidityProvider.connect(owner).setLaunchPad(owner.address);
 
         const token = await hre.ethers.deployContract("MockERC20", ["MockToken", "MTK"]);
 
-        return { factory, router, liquidityProvider, token };
+        return { factory, router, weth, liquidityProvider, token, ownerGroupContract, owner, other };
     }
 
-    it("Should be provided liquidity", async function () {
-        const [owner] = await hre.ethers.getSigners();
+    it("Should add liquidity, burn LP tokens, and track graduation", async function () {
+        const { factory, weth, liquidityProvider, token, owner } = await loadFixture(deployLiquidityProvider);
 
-        const { factory, router, liquidityProvider, token } = await loadFixture(deployLiquidityProvider);
+        const tokenAmount = hre.ethers.parseEther("1000");
+        const ethAmount = hre.ethers.parseEther("10");
 
-        const tokenAmount = hre.ethers.parseEther("1000")
-        const ethAmount = hre.ethers.parseEther("10")
+        // Send tokens to LP contract
+        await token.mint(await liquidityProvider.getAddress(), tokenAmount);
 
-        await token.mint(liquidityProvider.getAddress(), tokenAmount)
-
-        await owner.sendTransaction({
-            to: liquidityProvider.getAddress(),
-            value: ethAmount,
-        })
-
-        const lpTx = await liquidityProvider.connect(owner).addLiquidityETH(
-            token.getAddress(),
+        // Add liquidity
+        const tx = await liquidityProvider.connect(owner).addLiquidityETH(
+            await token.getAddress(),
             tokenAmount,
             ethAmount,
-        )
-        await lpTx.wait()
+            { value: ethAmount }
+        );
+        await tx.wait();
 
-        const pairAddress = await factory.getPair(token.getAddress(), router.WETH())
+        // Pair was created
+        const pairAddress = await factory.getPair(await token.getAddress(), await weth.getAddress());
+        expect(pairAddress).to.not.equal(hre.ethers.ZeroAddress);
 
-        expect(pairAddress).to.not.equal(hre.ethers.ZeroAddress)
+        // LP tokens burned
+        const DEAD = "0x000000000000000000000000000000000000dEaD";
+        const lpToken = await hre.ethers.getContractAt("IERC20", pairAddress);
+        const deadBalance = await lpToken.balanceOf(DEAD);
+        expect(deadBalance).to.be.greaterThan(0);
 
-        const swapTx = await router.swapExactETHForTokens(
-            0,
-            [router.WETH(), token.getAddress()],
-            owner.address,
-            Math.floor(Date.now() / 1000) + 60,
-            {value: hre.ethers.parseEther("1")}
-        )
-        await swapTx.wait()
+        // Graduation tracked
+        expect(await liquidityProvider.isGraduated(await token.getAddress())).to.be.true;
+        const gradInfo = await liquidityProvider.getGraduationInfo(await token.getAddress());
+        expect(gradInfo.pairAddress).to.equal(pairAddress);
+        expect(gradInfo.lpTokensBurned).to.be.greaterThan(0);
+    });
 
-        const balance = await token.balanceOf(owner.address)
-        console.log(`token balance: ${hre.ethers.formatEther(balance)}`)
+    it("Should reject non-authorized callers", async function () {
+        const { liquidityProvider, token, other } = await loadFixture(deployLiquidityProvider);
 
-        expect(balance).greaterThan(hre.ethers.parseEther("0"))
-    })
+        await expect(
+            liquidityProvider.connect(other).addLiquidityETH(
+                await token.getAddress(),
+                hre.ethers.parseEther("1000"),
+                hre.ethers.parseEther("10"),
+                { value: hre.ethers.parseEther("10") }
+            )
+        ).to.be.revertedWith("Only LaunchPad or Owner");
+    });
+
+    it("Should allow slippage tolerance update by owner only", async function () {
+        const { liquidityProvider, owner, other } = await loadFixture(deployLiquidityProvider);
+
+        await liquidityProvider.connect(owner).setSlippageTolerance(90);
+        expect(await liquidityProvider.slippageTolerance()).to.equal(90);
+
+        await expect(
+            liquidityProvider.connect(other).setSlippageTolerance(90)
+        ).to.be.revertedWith("Only Owner");
+
+        await expect(
+            liquidityProvider.connect(owner).setSlippageTolerance(79)
+        ).to.be.revertedWith("Tolerance 80-100");
+    });
 });

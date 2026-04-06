@@ -1,18 +1,11 @@
-// This setup uses Hardhat Ignition to manage smart contract deployments.
-// Learn more about it at https://hardhat.org/ignition
-
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import * as dotenv from "dotenv";
-
-dotenv.config();
+import { vars } from "hardhat/config";
 
 const OwnerGroupModule = buildModule("OwnerGroupModule", (m) => {
-  const ownerAddress = process.env.OWNER_ADDRESS;
-  console.log(`ownerAddress : ${ownerAddress}`);
-  
-  const ownerGroupContract = m.contract("OwnerGroupContract", [[ownerAddress]]);
+  const ownerAddress = vars.has("OWNER_ADDRESS") ? vars.get("OWNER_ADDRESS") : "";
+  if (!ownerAddress) throw new Error("OWNER_ADDRESS not set. Run: npx hardhat vars set OWNER_ADDRESS");
 
-  console.log(`OwnerGroupContract: ${ownerGroupContract}`)
+  const ownerGroupContract = m.contract("OwnerGroupContract", [[ownerAddress]]);
 
   return { ownerGroupContract };
 });
