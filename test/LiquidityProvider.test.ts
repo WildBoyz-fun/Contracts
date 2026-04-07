@@ -1,5 +1,6 @@
 import { expect } from "chai"
 import hre from "hardhat";
+import { upgrades } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers"
 
 describe("LiquidityProvider", function () {
@@ -15,10 +16,12 @@ describe("LiquidityProvider", function () {
         ]);
         const ownerGroupContract = await hre.ethers.deployContract("OwnerGroupContract", [[owner.address]]);
 
-        const liquidityProvider = await hre.ethers.deployContract("LiquidityProvider", [
+        const LiquidityProviderFactory = await hre.ethers.getContractFactory("LiquidityProvider");
+        const liquidityProvider = await upgrades.deployProxy(LiquidityProviderFactory, [
             await router.getAddress(),
             await ownerGroupContract.getAddress()
-        ]);
+        ], { kind: "uups" });
+        await liquidityProvider.waitForDeployment();
 
         // Set owner as launchPad for direct testing
         await liquidityProvider.connect(owner).setLaunchPad(owner.address);

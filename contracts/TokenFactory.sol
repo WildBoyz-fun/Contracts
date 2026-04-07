@@ -4,6 +4,8 @@ pragma solidity ^0.8.27;
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {ERC404Token} from "./ERC404Token.sol";
 import {IOwnerGroupContract} from "./libs/IOwnerGroupContract.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 interface ITokenFactory {
     function createToken(
@@ -14,7 +16,7 @@ interface ITokenFactory {
     ) external returns (address);
 }
 
-contract TokenFactory is ITokenFactory {
+contract TokenFactory is Initializable, UUPSUpgradeable, ITokenFactory {
     using Clones for address;
 
     IOwnerGroupContract private _ownerGroupContract;
@@ -34,9 +36,17 @@ contract TokenFactory is ITokenFactory {
         _;
     }
 
-    constructor(address ownerGroupContract) {
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(address ownerGroupContract) external initializer {
+
         _ownerGroupContract = IOwnerGroupContract(ownerGroupContract);
     }
+
+    function _authorizeUpgrade(address) internal override onlyOwnerGroup {}
 
     function setLaunchPad(address _launchPad) external onlyOwnerGroup {
         require(_launchPad != address(0), "Invalid");
@@ -63,4 +73,6 @@ contract TokenFactory is ITokenFactory {
         );
         return clone;
     }
+
+    uint256[50] private __gap;
 }

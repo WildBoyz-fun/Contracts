@@ -4,15 +4,25 @@ pragma solidity ^0.8.27;
 import {IERC404} from "./libs/ERC404/interfaces/IERC404.sol";
 import {ERC404Token} from "./ERC404Token.sol";
 import {ITokenFactory} from "./TokenFactory.sol";
-import "./libs/MaxGasPrice.sol";
+import "./libs/MaxGasPriceUpgradeable.sol";
 import "./BondingCurve.sol";
 import "./LiquidityProvider.sol";
 
 import {IOwnerGroupContract} from "./libs/IOwnerGroupContract.sol";
 import {IReferralTracker} from "./libs/IReferralTracker.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract LaunchPad is MaxGasPrice, ReentrancyGuard {
+contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
+    uint256 private constant NOT_ENTERED = 1;
+    uint256 private constant ENTERED = 2;
+    uint256 private _reentrancyStatus;
+
+    modifier nonReentrant() {
+        require(_reentrancyStatus != ENTERED, "ReentrancyGuard: reentrant call");
+        _reentrancyStatus = ENTERED;
+        _;
+        _reentrancyStatus = NOT_ENTERED;
+    }
     BondingCurve private _bondingCurveContract;
     IOwnerGroupContract private _ownerGroupContract;
     LiquidityProvider private _liquidityProviderContract;
@@ -34,8 +44,8 @@ contract LaunchPad is MaxGasPrice, ReentrancyGuard {
     address[] public launchedTokenContracts;
     mapping(address => address[]) public userDeployedContracts;
 
-    uint256 public targetFundRasingAmount = 800_000_000 * 10 ** 18;
-    uint8 public _feeRate = 1;
+    uint256 public targetFundRasingAmount;
+    uint8 public _feeRate;
     uint256 public totalAccumulatedFees;
 
     mapping(address => ContractInfo) public contractInfo;
@@ -60,21 +70,39 @@ contract LaunchPad is MaxGasPrice, ReentrancyGuard {
         _;
     }
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(
+        address treasuryAddress,
+        address bondingCurveContract,
+        address ownerGroupContract
+    ) external initializer {
+        require(treasuryAddress != address(0), "Invalid treasury");
+        require(bondingCurveContract != address(0), "Invalid bonding curve");
+        require(ownerGroupContract != address(0), "Invalid owner group");
+
+        __MaxGasPrice_init(msg.sender);
+
+        _reentrancyStatus = NOT_ENTERED;
+
+        _treasuryAddress = treasuryAddress;
+        _bondingCurveContract = BondingCurve(bondingCurveContract);
+        _ownerGroupContract = IOwnerGroupContract(ownerGroupContract);
+        targetFundRasingAmount = 800_000_000 * 10 ** 18;
+        _feeRate = 1;
+    }
+
+    function _authorizeUpgrade(address) internal override onlyOwnerGroup {}
+
     receive() external payable {
         emit Received(msg.sender, msg.value);
     }
 
     function getBalance() external view returns (uint) {
         return address(this).balance;
-    }
-
-    constructor(address treasuryAddress, address bondingCurveContract, address ownerGroupContract) MaxGasPrice(msg.sender) {
-        require(treasuryAddress != address(0), "Invalid treasury");
-        require(bondingCurveContract != address(0), "Invalid bonding curve");
-        require(ownerGroupContract != address(0), "Invalid owner group");
-        _treasuryAddress = treasuryAddress;
-        _bondingCurveContract = BondingCurve(bondingCurveContract);
-        _ownerGroupContract = IOwnerGroupContract(ownerGroupContract);
     }
 
     // --- Token Creation (via Factory) ---
@@ -148,8 +176,6 @@ contract LaunchPad is MaxGasPrice, ReentrancyGuard {
 
     // --- Buy / Sell ---
 
-    /// @param ca Token contract address
-    /// @param minTokens Minimum tokens expected (slippage protection, 0 to skip)
     function buyToken(address ca, uint256 minTokens) public payable validGasPrice nonReentrant returns (uint256) {
         ContractInfo storage info = contractInfo[ca];
         require(info.saleIsActive, "SNA");
@@ -164,12 +190,10 @@ contract LaunchPad is MaxGasPrice, ReentrancyGuard {
         require(amount >= minTokens, "Slippage exceeded");
         require(token.balanceOf(address(this)) >= amount, "Insufficient");
 
-        // Effects
         totalAccumulatedFees += fee;
         info.totalSupply += amount;
         info.ethDepositBalance += deposit;
 
-        // Interactions
         require(token.transfer(msg.sender, amount), "Transfer failed");
 
         uint256 currentPrice = _bondingCurveContract.calculatePurchaseBalance(info.totalSupply, info.ethDepositBalance, 1e18);
@@ -184,9 +208,6 @@ contract LaunchPad is MaxGasPrice, ReentrancyGuard {
         return amount;
     }
 
-    /// @param ca Token contract address
-    /// @param amount Tokens to sell
-    /// @param minEth Minimum ETH expected (slippage protection, 0 to skip)
     function sellToken(address ca, uint256 amount, uint256 minEth) validGasPrice nonReentrant public {
         ContractInfo storage info = contractInfo[ca];
         require(info.saleIsActive, "SNA");
@@ -200,10 +221,8 @@ contract LaunchPad is MaxGasPrice, ReentrancyGuard {
         ethReturn -= fee;
         require(ethReturn >= minEth, "Slippage exceeded");
 
-        // Interactions FIRST: pull tokens from user
         require(token.transferFrom(msg.sender, address(this), amount), "TransferFrom failed");
 
-        // Effects AFTER successful token pull
         totalAccumulatedFees += fee;
         info.ethDepositBalance -= (ethReturn + fee);
         info.totalSupply -= amount;
@@ -213,7 +232,6 @@ contract LaunchPad is MaxGasPrice, ReentrancyGuard {
 
         _recordReferral(IReferralTracker.ActivityType.TOKEN_SELL, msg.sender);
 
-        // ETH transfer last (CEI pattern)
         (bool success, ) = payable(msg.sender).call{value: ethReturn}("");
         require(success, "ETH transfer failed");
     }
@@ -325,4 +343,6 @@ contract LaunchPad is MaxGasPrice, ReentrancyGuard {
     function getTreasuryAddress() external view returns (address) {
         return _treasuryAddress;
     }
+
+    uint256[50] private __gap;
 }

@@ -1,5 +1,6 @@
 import { expect } from "chai"
 import hre from "hardhat";
+import { upgrades } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers"
 import { ethers } from "hardhat";
 import { TokenParams } from "./params/TokenParams";
@@ -25,25 +26,31 @@ describe("LaunchPad Auto LP & Graduation", function () {
             await ownerGroupContract.getAddress()
         ]);
 
-        // Deploy LiquidityProvider with new constructor
-        const liquidityProvider = await hre.ethers.deployContract("LiquidityProvider", [
+        // Deploy LiquidityProvider with proxy
+        const LiquidityProviderFactory = await hre.ethers.getContractFactory("LiquidityProvider");
+        const liquidityProvider = await upgrades.deployProxy(LiquidityProviderFactory, [
             await router.getAddress(),
             await ownerGroupContract.getAddress()
-        ]);
+        ], { kind: "uups" });
+        await liquidityProvider.waitForDeployment();
 
         // Deploy ERC404Token implementation + TokenFactory
         const erc404Impl = await hre.ethers.deployContract("ERC404Token");
-        const tokenFactory = await hre.ethers.deployContract("TokenFactory", [
+        const TokenFactoryFactory = await hre.ethers.getContractFactory("TokenFactory");
+        const tokenFactory = await upgrades.deployProxy(TokenFactoryFactory, [
             await ownerGroupContract.getAddress()
-        ]);
+        ], { kind: "uups" });
+        await tokenFactory.waitForDeployment();
         await tokenFactory.connect(owner).setImplementation(await erc404Impl.getAddress());
 
         // Deploy LaunchPad
-        const launchPad = await hre.ethers.deployContract("LaunchPad", [
+        const LaunchPadFactory = await hre.ethers.getContractFactory("LaunchPad");
+        const launchPad = await upgrades.deployProxy(LaunchPadFactory, [
             await launchPadTokenTreasury.getAddress(),
             await bondingCurve.getAddress(),
             await ownerGroupContract.getAddress()
-        ]);
+        ], { kind: "uups" });
+        await launchPad.waitForDeployment();
 
         // Wire up
         await launchPad.connect(owner).setLiquidityProviderContract(await liquidityProvider.getAddress());

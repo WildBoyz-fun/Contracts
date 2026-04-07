@@ -1,5 +1,6 @@
 import { expect } from "chai"
 import hre from "hardhat";
+import { upgrades } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers"
 import { ethers } from "hardhat";
 import { TokenParams } from "./params/TokenParams";
@@ -18,9 +19,11 @@ describe("Referral Integration with LaunchPad", function () {
         ]);
 
         // Deploy ReferralTracker
-        const referralTracker = await hre.ethers.deployContract("ReferralTracker", [
+        const ReferralTrackerFactory = await hre.ethers.getContractFactory("ReferralTracker");
+        const referralTracker = await upgrades.deployProxy(ReferralTrackerFactory, [
             await ownerGroupContract.getAddress()
-        ]);
+        ], { kind: "uups" });
+        await referralTracker.waitForDeployment();
 
         // Deploy Mock Uniswap
         const factory = await hre.ethers.deployContract("MockUniswapV2Factory");
@@ -28,21 +31,27 @@ describe("Referral Integration with LaunchPad", function () {
         const router = await hre.ethers.deployContract("MockUniswapV2Router", [
             await factory.getAddress(), await weth.getAddress()
         ]);
-        const liquidityProvider = await hre.ethers.deployContract("LiquidityProvider", [
+        const LiquidityProviderFactory = await hre.ethers.getContractFactory("LiquidityProvider");
+        const liquidityProvider = await upgrades.deployProxy(LiquidityProviderFactory, [
             await router.getAddress(), await ownerGroupContract.getAddress()
-        ]);
+        ], { kind: "uups" });
+        await liquidityProvider.waitForDeployment();
 
         // Deploy ERC404Token implementation + TokenFactory + LaunchPad
         const erc404Impl = await hre.ethers.deployContract("ERC404Token");
-        const tokenFactory = await hre.ethers.deployContract("TokenFactory", [
+        const TokenFactoryFactory = await hre.ethers.getContractFactory("TokenFactory");
+        const tokenFactory = await upgrades.deployProxy(TokenFactoryFactory, [
             await ownerGroupContract.getAddress()
-        ]);
+        ], { kind: "uups" });
+        await tokenFactory.waitForDeployment();
         await tokenFactory.connect(owner).setImplementation(await erc404Impl.getAddress());
-        const launchPad = await hre.ethers.deployContract("LaunchPad", [
+        const LaunchPadFactory = await hre.ethers.getContractFactory("LaunchPad");
+        const launchPad = await upgrades.deployProxy(LaunchPadFactory, [
             await launchPadTokenTreasury.getAddress(),
             await bondingCurve.getAddress(),
             await ownerGroupContract.getAddress()
-        ]);
+        ], { kind: "uups" });
+        await launchPad.waitForDeployment();
 
         // Wire up
         await launchPad.connect(owner).setLiquidityProviderContract(await liquidityProvider.getAddress());
@@ -129,11 +138,15 @@ describe("Referral Integration with LaunchPad", function () {
         const ownerGroupContract = await hre.ethers.deployContract("OwnerGroupContract", [[owner.address]]);
         const treasury = await hre.ethers.deployContract("LaunchPanTokenTreasury", [await ownerGroupContract.getAddress()]);
         const impl2 = await hre.ethers.deployContract("ERC404Token");
-        const tf = await hre.ethers.deployContract("TokenFactory", [await ownerGroupContract.getAddress()]);
+        const TFFactory = await hre.ethers.getContractFactory("TokenFactory");
+        const tf = await upgrades.deployProxy(TFFactory, [await ownerGroupContract.getAddress()], { kind: "uups" });
+        await tf.waitForDeployment();
         await tf.connect(owner).setImplementation(await impl2.getAddress());
-        const launchPadNoRef = await hre.ethers.deployContract("LaunchPad", [
+        const LPFactory2 = await hre.ethers.getContractFactory("LaunchPad");
+        const launchPadNoRef = await upgrades.deployProxy(LPFactory2, [
             await treasury.getAddress(), await bondingCurve.getAddress(), await ownerGroupContract.getAddress()
-        ]);
+        ], { kind: "uups" });
+        await launchPadNoRef.waitForDeployment();
         await launchPadNoRef.connect(owner).setTokenFactory(await tf.getAddress());
         await tf.connect(owner).setLaunchPad(await launchPadNoRef.getAddress());
 

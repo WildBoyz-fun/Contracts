@@ -1,5 +1,6 @@
 import { expect } from "chai"
 import hre from "hardhat";
+import { upgrades } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers"
 import { ethers } from "hardhat";
 import { LaunchPanTokenTreasury__factory } from "../typechain-types";
@@ -16,10 +17,14 @@ describe("LaunchPad", function () {
         const ownerGroupContract = await hre.ethers.deployContract("OwnerGroupContract", [[owner.address]])
         const launchPadTokenTreasury = await hre.ethers.deployContract("LaunchPanTokenTreasury", [await ownerGroupContract.getAddress()])
         const erc404Impl = await hre.ethers.deployContract("ERC404Token")
-        const tokenFactory = await hre.ethers.deployContract("TokenFactory", [await ownerGroupContract.getAddress()])
+        const TokenFactoryFactory = await hre.ethers.getContractFactory("TokenFactory");
+        const tokenFactory = await upgrades.deployProxy(TokenFactoryFactory, [await ownerGroupContract.getAddress()], { kind: "uups" });
+        await tokenFactory.waitForDeployment();
         await tokenFactory.connect(owner).setImplementation(await erc404Impl.getAddress())
 
-        const launchPad = await hre.ethers.deployContract("LaunchPad", [await launchPadTokenTreasury.getAddress(), await bondingCurve.getAddress(), await ownerGroupContract.getAddress()])
+        const LaunchPadFactory = await hre.ethers.getContractFactory("LaunchPad");
+        const launchPad = await upgrades.deployProxy(LaunchPadFactory, [await launchPadTokenTreasury.getAddress(), await bondingCurve.getAddress(), await ownerGroupContract.getAddress()], { kind: "uups" });
+        await launchPad.waitForDeployment();
 
         await launchPad.connect(owner).setTokenFactory(await tokenFactory.getAddress());
         await tokenFactory.connect(owner).setLaunchPad(await launchPad.getAddress());

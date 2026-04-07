@@ -1,5 +1,6 @@
 import { expect } from "chai"
 import hre from "hardhat";
+import { upgrades } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers"
 import { ethers } from "hardhat";
 
@@ -9,9 +10,11 @@ describe("Referral Reward Claim", function () {
         const [owner, referrer, user1, user2] = await hre.ethers.getSigners();
 
         const ownerGroupContract = await hre.ethers.deployContract("OwnerGroupContract", [[owner.address]]);
-        const referralTracker = await hre.ethers.deployContract("ReferralTracker", [
+        const ReferralTrackerFactory = await hre.ethers.getContractFactory("ReferralTracker");
+        const referralTracker = await upgrades.deployProxy(ReferralTrackerFactory, [
             await ownerGroupContract.getAddress()
-        ]);
+        ], { kind: "uups" });
+        await referralTracker.waitForDeployment();
 
         return { referralTracker, ownerGroupContract, owner, referrer, user1, user2 };
     }

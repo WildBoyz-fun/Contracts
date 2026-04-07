@@ -1,5 +1,6 @@
 import { expect } from "chai";
 import hre from "hardhat";
+import { upgrades } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 import { ethers } from "hardhat";
 
@@ -13,7 +14,9 @@ describe("ERC404Token", function () {
     // Deploy implementation + clone via factory
     const impl = await hre.ethers.deployContract("ERC404Token");
     const ownerGroup = await hre.ethers.deployContract("OwnerGroupContract", [[owner.address]]);
-    const factory = await hre.ethers.deployContract("TokenFactory", [await ownerGroup.getAddress()]);
+    const TokenFactoryFactory = await hre.ethers.getContractFactory("TokenFactory");
+    const factory = await upgrades.deployProxy(TokenFactoryFactory, [await ownerGroup.getAddress()], { kind: "uups" });
+    await factory.waitForDeployment();
     await factory.setImplementation(await impl.getAddress());
 
     const tx = await factory.createToken(
