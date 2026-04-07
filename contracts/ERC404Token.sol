@@ -7,16 +7,23 @@ import {ERC404U16} from "./libs/ERC404/ERC404U16.sol";
 
 contract ERC404Token is Ownable, ERC404U16 {
   error InsufficientFee();
-//  event TransferFeePaid(bytes data);
+  error AlreadyInitialized();
+
   address private _tokenTreasury;
   uint256 private _taxPermil;
+  bool private _initialized;
 
   string public dataURI;
   string public baseTokenURI;
   string[5] private images;
   string[6] private trait_values;
 
-  constructor(
+  /// @dev Minimal constructor for implementation deployment only.
+  ///      Clones skip the constructor entirely — all state is set via initialize().
+  constructor() ERC404U16("", "", 24) Ownable(msg.sender) {}
+
+  /// @notice One-time initializer called after clone creation.
+  function initialize(
     string memory name_,
     string memory symbol_,
     uint256 initialSupply_,
@@ -28,13 +35,26 @@ contract ERC404Token is Ownable, ERC404U16 {
     string memory trait_type_,
     string[5] memory trait_values_,
     string[5] memory images_
-  ) ERC404U16(name_, symbol_, 24) Ownable(initialOwner_) {
-    // Do not mint the ERC721s to the initial owner, as it's a waste of gas.
+  ) external {
+    if (_initialized) revert AlreadyInitialized();
+    _initialized = true;
+
+    // ERC404U16 fields (storage, not immutable)
+    name = name_;
+    symbol = symbol_;
+
+    // Ownable
+    _transferOwnership(initialOwner_);
+
+    // Mint
     _setERC721TransferExempt(initialMintRecipient_, true);
     _mintERC20(initialMintRecipient_, initialSupply_);
+
+    // Token config
     _tokenTreasury = tokenTreasury_;
     _taxPermil = taxPermil_;
-    // set default trait and image values
+
+    // Metadata (IPFS URLs)
     dataURI = imageURI_;
     trait_values = [
       trait_values_[0],
@@ -43,14 +63,12 @@ contract ERC404Token is Ownable, ERC404U16 {
       trait_values_[3],
       trait_values_[4],
       trait_type_];
-    // ["Green","Blue","Purple","Orange","Red","Color"]
     images = [
       images_[0],
       images_[1],
       images_[2],
       images_[3],
       images_[4]];
-    // ["1.gif","2.gif","3.gif","4.gif","5.gif"]
   }
 
   function setERC721TransferExempt(
@@ -94,6 +112,11 @@ contract ERC404Token is Ownable, ERC404U16 {
     images[2] = img3_;
     images[3] = img4_;
     images[4] = img5_;
+  }
+
+  /// @dev Always recompute for clone compatibility (clone address != implementation address).
+  function DOMAIN_SEPARATOR() public view override returns (bytes32) {
+    return _computeDomainSeparator();
   }
 
   function tokenURI(uint256 id_) public view override returns (string memory) {

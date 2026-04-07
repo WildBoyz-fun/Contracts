@@ -27,7 +27,11 @@ async function main() {
   const tokenTreasury = await (await ethers.deployContract("TokenTreasury", [await ownerGroup.getAddress()])).waitForDeployment();
   console.log("TokenTreasury:", await tokenTreasury.getAddress());
 
-  // 3. TokenFactory
+  // 3. ERC404Token implementation (for clone pattern)
+  const erc404Impl = await (await ethers.deployContract("ERC404Token")).waitForDeployment();
+  console.log("ERC404Token (impl):", await erc404Impl.getAddress());
+
+  // 4. TokenFactory
   const tokenFactory = await (await ethers.deployContract("TokenFactory", [await ownerGroup.getAddress()])).waitForDeployment();
   console.log("TokenFactory:", await tokenFactory.getAddress());
 
@@ -64,6 +68,9 @@ async function main() {
   await (await tokenFactory.setLaunchPad(await launchPad.getAddress())).wait();
   console.log("  TokenFactory -> LaunchPad ✓");
 
+  await (await tokenFactory.setImplementation(await erc404Impl.getAddress())).wait();
+  console.log("  TokenFactory -> ERC404Token implementation ✓");
+
   await (await referralTracker.setAuthorizedContract(await launchPad.getAddress(), true)).wait();
   console.log("  ReferralTracker authorized LaunchPad ✓");
 
@@ -79,6 +86,7 @@ async function main() {
   console.log(`BondingCurve:      ${await bondingCurve.getAddress()}`);
   console.log(`OwnerGroup:        ${await ownerGroup.getAddress()}`);
   console.log(`TokenTreasury:     ${await tokenTreasury.getAddress()}`);
+  console.log(`ERC404Impl:        ${await erc404Impl.getAddress()}`);
   console.log(`TokenFactory:      ${await tokenFactory.getAddress()}`);
   console.log(`LiquidityProvider: ${await liquidityProvider.getAddress()}`);
   console.log(`ReferralTracker:   ${await referralTracker.getAddress()}`);

@@ -32,10 +32,12 @@ describe("Referral Integration with LaunchPad", function () {
             await router.getAddress(), await ownerGroupContract.getAddress()
         ]);
 
-        // Deploy TokenFactory + LaunchPad
+        // Deploy ERC404Token implementation + TokenFactory + LaunchPad
+        const erc404Impl = await hre.ethers.deployContract("ERC404Token");
         const tokenFactory = await hre.ethers.deployContract("TokenFactory", [
             await ownerGroupContract.getAddress()
         ]);
+        await tokenFactory.connect(owner).setImplementation(await erc404Impl.getAddress());
         const launchPad = await hre.ethers.deployContract("LaunchPad", [
             await launchPadTokenTreasury.getAddress(),
             await bondingCurve.getAddress(),
@@ -126,7 +128,9 @@ describe("Referral Integration with LaunchPad", function () {
         const bondingCurve = await hre.ethers.deployContract("BondingCurve");
         const ownerGroupContract = await hre.ethers.deployContract("OwnerGroupContract", [[owner.address]]);
         const treasury = await hre.ethers.deployContract("LaunchPanTokenTreasury", [await ownerGroupContract.getAddress()]);
+        const impl2 = await hre.ethers.deployContract("ERC404Token");
         const tf = await hre.ethers.deployContract("TokenFactory", [await ownerGroupContract.getAddress()]);
+        await tf.connect(owner).setImplementation(await impl2.getAddress());
         const launchPadNoRef = await hre.ethers.deployContract("LaunchPad", [
             await treasury.getAddress(), await bondingCurve.getAddress(), await ownerGroupContract.getAddress()
         ]);

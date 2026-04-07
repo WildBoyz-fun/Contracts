@@ -31,10 +31,12 @@ describe("LaunchPad Auto LP & Graduation", function () {
             await ownerGroupContract.getAddress()
         ]);
 
-        // Deploy TokenFactory
+        // Deploy ERC404Token implementation + TokenFactory
+        const erc404Impl = await hre.ethers.deployContract("ERC404Token");
         const tokenFactory = await hre.ethers.deployContract("TokenFactory", [
             await ownerGroupContract.getAddress()
         ]);
+        await tokenFactory.connect(owner).setImplementation(await erc404Impl.getAddress());
 
         // Deploy LaunchPad
         const launchPad = await hre.ethers.deployContract("LaunchPad", [

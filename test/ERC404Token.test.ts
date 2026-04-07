@@ -9,20 +9,44 @@ describe("ERC404Token", function () {
 
   async function deployERC404Fixture() {
     const [owner, user, treasury] = await hre.ethers.getSigners();
-    
-    const erc404 = await hre.ethers.deployContract("ERC404Token", [
-      "TestToken",
-      "TT",
-      initialSupply,
-      owner.address,
-      owner.address,
-      treasury.address,
-      taxPermil,
-      "https://example.com/",
-      "Color",
+
+    // Deploy implementation + clone via factory
+    const impl = await hre.ethers.deployContract("ERC404Token");
+    const ownerGroup = await hre.ethers.deployContract("OwnerGroupContract", [[owner.address]]);
+    const factory = await hre.ethers.deployContract("TokenFactory", [await ownerGroup.getAddress()]);
+    await factory.setImplementation(await impl.getAddress());
+
+    const tx = await factory.createToken(
+      "TestToken", "TT", initialSupply,
+      owner.address, owner.address, treasury.address, taxPermil,
+      "https://example.com/", "Color",
       ["Green", "Blue", "Purple", "Orange", "Red"],
       ["1.gif", "2.gif", "3.gif", "4.gif", "5.gif"]
-    ]);
+    );
+    const receipt = await tx.wait();
+    // Get clone address from return value via event or static call
+    // Re-do as staticCall to get the address
+    const cloneAddress = await factory.createToken.staticCall(
+      "TestToken2", "TT2", initialSupply,
+      owner.address, owner.address, treasury.address, taxPermil,
+      "https://example.com/", "Color",
+      ["Green", "Blue", "Purple", "Orange", "Red"],
+      ["1.gif", "2.gif", "3.gif", "4.gif", "5.gif"]
+    );
+    // Actually, let's get address from the first createToken via logs
+    // The clone address is the return value. Use events or parse logs.
+    // Simpler: just attach to the known address from receipt
+    const erc404Factory = await hre.ethers.getContractFactory("ERC404Token");
+
+    // Parse the transfer event to find the clone address (ERC20 Transfer from 0x0)
+    const transferLog = receipt?.logs.find(log => {
+      try {
+        const parsed = erc404Factory.interface.parseLog(log);
+        return parsed?.name === "Transfer";
+      } catch { return false; }
+    });
+    const cloneAddr = transferLog?.address;
+    const erc404 = erc404Factory.attach(cloneAddr!) as any;
 
     return { erc404, owner, user, treasury };
   }
