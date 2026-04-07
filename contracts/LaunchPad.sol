@@ -306,7 +306,7 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
         _liquidityProviderContract = LiquidityProvider(payable(addr));
     }
 
-    function addLiquidityETH(address ca, uint256 tokenAmount, uint256 ethAmount) external onlyOwnerGroup {
+    function addLiquidityETH(address ca, uint256 tokenAmount, uint256 ethAmount) external onlyOwnerGroup nonReentrant {
         require(address(_liquidityProviderContract) != address(0), "LPCNA");
         require(contractInfo[ca].exists, "CND");
         IERC404(ca).transfer(address(_liquidityProviderContract), tokenAmount);
@@ -324,6 +324,11 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
     function setFeeRate(uint8 rate) external onlyOwnerGroup {
         require(rate <= 10, "Max 10%");
         _feeRate = rate;
+    }
+
+    function setMaxGasPrice(uint256 newMax) public override onlyOwnerGroup returns (bool) {
+        maxGasPrice = newMax;
+        return true;
     }
 
     // --- Admin View Helpers ---

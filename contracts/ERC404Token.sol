@@ -20,7 +20,9 @@ contract ERC404Token is Ownable, ERC404U16 {
 
   /// @dev Minimal constructor for implementation deployment only.
   ///      Clones skip the constructor entirely — all state is set via initialize().
-  constructor() ERC404U16("", "", 24) Ownable(msg.sender) {}
+  constructor() ERC404U16("", "", 24) Ownable(msg.sender) {
+    _initialized = true; // prevent initialize() on implementation
+  }
 
   /// @notice One-time initializer called after clone creation.
   function initialize(
@@ -194,7 +196,7 @@ contract ERC404Token is Ownable, ERC404U16 {
   function ercTransferFromWithFee(
       address from_,
       uint256 value_
-  ) public returns (uint256) {
+  ) internal returns (uint256) {
     uint256 fee = value_ * _taxPermil / 1000;
 
     _transferERC20WithERC721(from_, _tokenTreasury, fee);

@@ -17,8 +17,10 @@ abstract contract MaxGasPriceUpgradeable is Initializable, OwnableUpgradeable {
         _;
     }
 
-    function setMaxGasPrice(uint256 newMax) public onlyOwner returns (bool) {
+    function setMaxGasPrice(uint256 newMax) public virtual onlyOwner returns (bool) {
         maxGasPrice = newMax;
         return true;
     }
+
+    uint256[49] private __gap;
 }

@@ -115,7 +115,10 @@ contract LiquidityProvider is Initializable, UUPSUpgradeable {
 
         uint256 remainingTokens = IERC20(token).balanceOf(address(this));
         if (remainingTokens > 0) IERC20(token).transfer(msg.sender, remainingTokens);
-        if (address(this).balance > 0) payable(msg.sender).transfer(address(this).balance);
+        if (address(this).balance > 0) {
+            (bool refundSuccess, ) = payable(msg.sender).call{value: address(this).balance}("");
+            require(refundSuccess, "ETH refund failed");
+        }
     }
 
     function getPairAddress(address token) external view returns (address) { return tokenPairs[token]; }
