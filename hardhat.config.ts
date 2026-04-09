@@ -107,6 +107,9 @@ const config: HardhatUserConfig = {
       accounts: DEPLOYER_KEY,
     },
   },
+  etherscan: {
+    apiKey: vars.has("BASESCAN_API_KEY") ? vars.get("BASESCAN_API_KEY") : "",
+  },
 };
 
 export default config;
