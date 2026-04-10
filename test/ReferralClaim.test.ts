@@ -73,23 +73,22 @@ describe("Referral Reward Claim", function () {
         expect(await referralTracker.totalClaimed(user1.address)).to.equal(ethers.parseEther("0.03"));
     });
 
-    it("should allow new epoch for repeated claims", async function () {
+    it("should reset points after claim — no repeated claims with same points", async function () {
         const { referralTracker, owner, referrer, user1 } = await loadFixture(deployReferral);
 
         await referralTracker.connect(user1).registerWithReferral(referrer.address);
 
-        // Epoch 1
+        // Epoch 1 — referrer claims with 100 points
         const ethPerPoint = ethers.parseEther("0.0001");
         await referralTracker.connect(owner).fundRewardPool(ethPerPoint, { value: ethers.parseEther("1") });
         await referralTracker.connect(referrer).claimReward();
 
-        // Epoch 2 - owner funds again
-        await referralTracker.connect(owner).fundRewardPool(ethPerPoint, { value: ethers.parseEther("1") });
-        expect(await referralTracker.currentEpoch()).to.equal(2);
+        // Points reset to 0 after claim
+        expect(await referralTracker.totalPoints(referrer.address)).to.equal(0);
 
-        // Referrer can claim again in new epoch
-        await referralTracker.connect(referrer).claimReward();
-        expect(await referralTracker.lastClaimedEpoch(referrer.address)).to.equal(2);
+        // Epoch 2 — referrer cannot claim again (0 points)
+        await referralTracker.connect(owner).fundRewardPool(ethPerPoint, { value: ethers.parseEther("1") });
+        await expect(referralTracker.connect(referrer).claimReward()).to.be.revertedWith("No points to claim");
     });
 
     it("should reject claim with 0 or negative points", async function () {

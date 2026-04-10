@@ -125,9 +125,14 @@ contract ReferralTracker is Initializable, UUPSUpgradeable {
         require(points > 0, "No points to claim");
         uint256 reward = uint256(points) * ethPerPoint;
         require(reward <= rewardPoolBalance, "Insufficient reward pool");
+
+        // Effects — reset points to prevent repeated claims across epochs
         lastClaimedEpoch[msg.sender] = currentEpoch;
+        totalPoints[msg.sender] = 0;
         rewardPoolBalance -= reward;
         totalClaimed[msg.sender] += reward;
+
+        // Interaction
         (bool success, ) = payable(msg.sender).call{value: reward}("");
         require(success, "Transfer failed");
         emit RewardClaimed(msg.sender, reward, points, currentEpoch);

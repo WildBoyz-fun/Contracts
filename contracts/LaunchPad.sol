@@ -242,11 +242,13 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
         ethReturn -= fee;
         require(ethReturn >= minEth, "Slippage exceeded");
 
-        require(token.transferFrom(msg.sender, address(this), amount), "TransferFrom failed");
-
+        // Effects FIRST (CEI pattern)
         totalAccumulatedFees += fee;
         info.ethDepositBalance -= (ethReturn + fee);
         info.totalSupply -= amount;
+
+        // Interactions AFTER
+        require(token.transferFrom(msg.sender, address(this), amount), "TransferFrom failed");
 
         uint256 currentPrice = _bondingCurveContract.calculatePurchaseBalance(info.totalSupply, info.ethDepositBalance, 1e18);
         emit TokenSold(ca, msg.sender, amount, currentPrice);
@@ -273,15 +275,19 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
                 info.ethDepositBalance = 0;
 
                 ERC404Token(ca).setERC721TransferExempt(address(_liquidityProviderContract), true);
-                token.transfer(address(_liquidityProviderContract), tokenBal);
 
-                (address pair, uint256 lpBurned) = _liquidityProviderContract.addLiquidityETH{value: ethBal}(ca, tokenBal, ethBal);
+                // Measure actual received amount (token tax may reduce transfer)
+                uint256 lpBalBefore = token.balanceOf(address(_liquidityProviderContract));
+                token.transfer(address(_liquidityProviderContract), tokenBal);
+                uint256 actualReceived = token.balanceOf(address(_liquidityProviderContract)) - lpBalBefore;
+
+                (address pair, uint256 lpBurned) = _liquidityProviderContract.addLiquidityETH{value: ethBal}(ca, actualReceived, ethBal);
 
                 graduatedPairs[ca] = pair;
                 ERC404Token(ca).setERC721TransferExempt(pair, true);
 
-                emit SuppliedLP(ca, tokenBal, ethBal);
-                emit Graduated(ca, pair, tokenBal, ethBal, lpBurned);
+                emit SuppliedLP(ca, actualReceived, ethBal);
+                emit Graduated(ca, pair, actualReceived, ethBal, lpBurned);
             }
         }
     }
@@ -294,6 +300,35 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
 
         emit EmergencyGraduated(ca, msg.sender);
         _graduateToken(ca, info);
+    }
+
+    /// @notice Recover stuck ETH from graduated tokens where LP creation failed
+    function recoverStuckGraduation(address ca) external onlyOwnerGroup onlyDeployed(ca) nonReentrant {
+        ContractInfo storage info = contractInfo[ca];
+        require(info.isGraduated, "Not graduated");
+        require(info.ethDepositBalance > 0, "No ETH to recover");
+        require(address(_liquidityProviderContract) != address(0), "Set LP first");
+
+        IERC404 token = IERC404(ca);
+        uint256 ethBal = info.ethDepositBalance;
+        uint256 tokenBal = token.balanceOf(address(this));
+        info.ethDepositBalance = 0;
+
+        if (tokenBal > 0) {
+            ERC404Token(ca).setERC721TransferExempt(address(_liquidityProviderContract), true);
+            uint256 lpBalBefore = token.balanceOf(address(_liquidityProviderContract));
+            token.transfer(address(_liquidityProviderContract), tokenBal);
+            uint256 actualReceived = token.balanceOf(address(_liquidityProviderContract)) - lpBalBefore;
+
+            (address pair, uint256 lpBurned) = _liquidityProviderContract.addLiquidityETH{value: ethBal}(ca, actualReceived, ethBal);
+            graduatedPairs[ca] = pair;
+            ERC404Token(ca).setERC721TransferExempt(pair, true);
+            emit Graduated(ca, pair, actualReceived, ethBal, lpBurned);
+        } else {
+            // No tokens left — refund ETH to treasury
+            (bool success, ) = _treasuryAddress.call{value: ethBal}("");
+            require(success, "ETH transfer failed");
+        }
     }
 
     // --- Admin ---
@@ -330,6 +365,8 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
     function addLiquidityETH(address ca, uint256 tokenAmount, uint256 ethAmount) external onlyOwnerGroup nonReentrant {
         require(address(_liquidityProviderContract) != address(0), "LPCNA");
         require(contractInfo[ca].exists, "CND");
+        require(ethAmount <= totalAccumulatedFees, "Cannot use deposited ETH");
+        totalAccumulatedFees -= ethAmount;
         IERC404(ca).transfer(address(_liquidityProviderContract), tokenAmount);
         _liquidityProviderContract.addLiquidityETH{value: ethAmount}(ca, tokenAmount, ethAmount);
         emit SuppliedLP(ca, tokenAmount, ethAmount);
@@ -350,6 +387,20 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
     function setFeeRate(uint8 rate) external onlyOwnerGroup {
         require(rate <= 10, "Max 10%");
         _feeRate = rate;
+    }
+
+    /// @notice Sweep rounding dust ETH that's not accounted for
+    function sweepDust() external onlyOwnerGroup {
+        // Calculate total accounted ETH (fees + all active token deposits)
+        uint256 accounted = totalAccumulatedFees;
+        for (uint256 i = 0; i < launchedTokenContracts.length; i++) {
+            accounted += contractInfo[launchedTokenContracts[i]].ethDepositBalance;
+        }
+        uint256 dust = address(this).balance > accounted ? address(this).balance - accounted : 0;
+        if (dust > 0) {
+            (bool success, ) = _treasuryAddress.call{value: dust}("");
+            require(success, "Transfer failed");
+        }
     }
 
     function setMaxGasPrice(uint256 newMax) public override onlyOwnerGroup returns (bool) {
