@@ -57,7 +57,7 @@ describe("LaunchPad", function () {
                 params.imageURI,
                 params.traitType,
                 params.traitValues,
-                params.images
+                params.images, params.description
             );
             const receipt = await tx.wait();
             
@@ -87,7 +87,7 @@ describe("LaunchPad", function () {
                 params.imageURI,
                 params.traitType,
                 params.traitValues,
-                params.images
+                params.images, params.description
             );
             const receipt = await tx.wait();
             
@@ -117,7 +117,7 @@ describe("LaunchPad", function () {
                 params.imageURI,
                 params.traitType,
                 params.traitValues,
-                params.images
+                params.images, params.description
             );
             const receipt = await tx.wait();
             
@@ -153,7 +153,7 @@ describe("LaunchPad", function () {
                 params.imageURI,
                 params.traitType,
                 params.traitValues,
-                params.images
+                params.images, params.description
             );
             const receipt = await tx.wait();
             
@@ -181,7 +181,7 @@ describe("LaunchPad", function () {
                 params.imageURI,
                 params.traitType,
                 params.traitValues,
-                params.images
+                params.images, params.description
             );
             const receipt1 = await tx1.wait();
             const event1 = receipt1?.logs
@@ -199,7 +199,7 @@ describe("LaunchPad", function () {
                 params.imageURI,
                 params.traitType,
                 params.traitValues,
-                params.images
+                params.images, params.description
             );
             const receipt2 = await tx2.wait();
             const event2 = receipt2?.logs
@@ -228,7 +228,7 @@ describe("LaunchPad", function () {
                 params.imageURI,
                 params.traitType,
                 params.traitValues,
-                params.images
+                params.images, params.description
             );
             const receipt1 = await tx1.wait();
             const event1 = receipt1?.logs
@@ -246,7 +246,7 @@ describe("LaunchPad", function () {
                 params.imageURI,
                 params.traitType,
                 params.traitValues,
-                params.images
+                params.images, params.description
             );
             const receipt2 = await tx2.wait();
             const event2 = receipt2?.logs
@@ -284,7 +284,7 @@ describe("LaunchPad", function () {
                 params.imageURI,
                 params.traitType,
                 params.traitValues,
-                params.images
+                params.images, params.description
             );
             const receipt = await tx.wait();
             
@@ -352,7 +352,7 @@ describe("LaunchPad", function () {
                 params.imageURI,
                 params.traitType,
                 params.traitValues,
-                params.images
+                params.images, params.description
             );
             const receipt = await tx.wait();
             
@@ -424,7 +424,7 @@ describe("LaunchPad", function () {
                 params.imageURI,
                 params.traitType,
                 params.traitValues,
-                params.images
+                params.images, params.description
             );
             const receipt = await tx.wait();
             

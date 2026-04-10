@@ -109,7 +109,8 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
 
     function createBioDiversityERC404Token(
         address tokenTreasuryAddress, uint256 maxSupply, string memory symbol, string memory name, uint256 taxPermil,
-        string memory imageURI_, string memory trait_type_, string[5] memory trait_values_, string[5] memory images_
+        string memory imageURI_, string memory trait_type_, string[5] memory trait_values_, string[5] memory images_,
+        string memory description_
     ) public returns (address) {
         require(address(_tokenFactory) != address(0), "Factory not set");
 
@@ -119,6 +120,11 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
                 name, symbol, maxSupply, address(this), address(this),
                 tokenTreasuryAddress, taxPermil, imageURI_, trait_type_, trait_values_, images_
             );
+        }
+
+        // Set description on-chain in the same tx
+        if (bytes(description_).length > 0) {
+            ERC404Token(contractAddress).setDescription(description_);
         }
 
         require(!contractInfo[contractAddress].exists, "AD");

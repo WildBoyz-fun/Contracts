@@ -10,6 +10,7 @@ export class TokenParams {
   traitType: string;
   traitValues: [string, string, string, string, string];
   images: [string, string, string, string, string];
+  description: string;
 
   constructor() {
     this.tokenTreasuryAddress = ethers.Wallet.createRandom().address;
@@ -21,5 +22,6 @@ export class TokenParams {
     this.traitType = "Green";
     this.traitValues = ["Green", "Blue", "Purple", "Orange", "Red"];
     this.images = ["img1", "img2", "img3", "img4", "img5"];
+    this.description = "Test token description";
   }
 }

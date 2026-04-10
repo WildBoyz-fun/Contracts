@@ -72,7 +72,8 @@ describe("LaunchPad Auto LP & Graduation", function () {
             p.imageURI,
             p.traitType,
             p.traitValues,
-            p.images
+            p.images,
+            p.description
         );
         const receipt = await tx.wait();
         const deployEvent = receipt?.logs

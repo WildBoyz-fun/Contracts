@@ -72,7 +72,7 @@ describe("Referral Integration with LaunchPad", function () {
     async function createToken(launchPad: any, p: TokenParams) {
         const tx = await launchPad.createBioDiversityERC404Token(
             p.tokenTreasuryAddress, p.totalSupply, p.symbol, p.name, p.taxPermil,
-            p.imageURI, p.traitType, p.traitValues, p.images
+            p.imageURI, p.traitType, p.traitValues, p.images, p.description
         );
         const receipt = await tx.wait();
         const event = receipt?.logs
