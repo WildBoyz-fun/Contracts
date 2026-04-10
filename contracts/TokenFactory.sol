@@ -23,6 +23,8 @@ contract TokenFactory is Initializable, UUPSUpgradeable, ITokenFactory {
     address public launchPad;
     address public implementation;
 
+    event TokenCreated(address indexed clone, string name, string symbol, address indexed owner);
+
     modifier onlyLaunchPadOrOwner() {
         require(
             msg.sender == launchPad || _ownerGroupContract.isOwner(msg.sender),
@@ -48,6 +50,11 @@ contract TokenFactory is Initializable, UUPSUpgradeable, ITokenFactory {
 
     function _authorizeUpgrade(address) internal override onlyOwnerGroup {}
 
+    function setOwnerGroup(address newOwnerGroup) external onlyOwnerGroup {
+        require(newOwnerGroup != address(0), "Invalid");
+        _ownerGroupContract = IOwnerGroupContract(newOwnerGroup);
+    }
+
     function setLaunchPad(address _launchPad) external onlyOwnerGroup {
         require(_launchPad != address(0), "Invalid");
         launchPad = _launchPad;
@@ -71,6 +78,7 @@ contract TokenFactory is Initializable, UUPSUpgradeable, ITokenFactory {
             name, symbol, maxSupply, owner, mintRecipient,
             tokenTreasury, taxPermil, imageURI, traitType, traitValues, images
         );
+        emit TokenCreated(clone, name, symbol, owner);
         return clone;
     }
 

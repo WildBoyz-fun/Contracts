@@ -677,8 +677,8 @@ abstract contract ERC404U16 is IERC404 {
       // Otherwise, mint a new token, should not be able to go over the total fractional supply.
       ++minted;
 
-      // Reserve max uint256 for approvals
-      if (minted == type(uint256).max) {
+      // ERC404U16 supports max 65535 unique NFT IDs (uint16)
+      if (minted > type(uint16).max) {
         revert MintLimitReached();
       }
 

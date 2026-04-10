@@ -15,6 +15,12 @@ contract ReferralTracker is Initializable, UUPSUpgradeable {
     struct PointRewardConfig { int256 referrerReward; int256 refereeReward; }
     struct ReferralActivity { ActivityType activityType; int256 point; uint256 timestamp; }
 
+    int256 public constant MAX_POINTS = 1_000_000_000; // 1 billion point cap
+    int256 public constant MIN_POINTS = -1_000_000;    // minimum negative cap
+
+    uint256 private constant NOT_ENTERED = 1;
+    uint256 private constant ENTERED = 2;
+
     IOwnerGroup public ownerGroup;
 
     mapping(ActivityType => PointRewardConfig) public rewardConfigs;
@@ -54,7 +60,7 @@ contract ReferralTracker is Initializable, UUPSUpgradeable {
     }
 
     function initialize(address ownerGroupAddress) external initializer {
-
+        _reentrancyStatus = NOT_ENTERED;
         ownerGroup = IOwnerGroup(ownerGroupAddress);
         rewardConfigs[ActivityType.ACCOUNT_CREATION] = PointRewardConfig(100, 300);
         rewardConfigs[ActivityType.TOKEN_BUY] = PointRewardConfig(1, 10);
@@ -64,6 +70,11 @@ contract ReferralTracker is Initializable, UUPSUpgradeable {
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
     receive() external payable {}
+
+    function setOwnerGroup(address newOwnerGroup) external onlyOwner {
+        require(newOwnerGroup != address(0), "Invalid");
+        ownerGroup = IOwnerGroup(newOwnerGroup);
+    }
 
     function setRewardConfig(ActivityType activityType, int256 referrerReward, int256 refereeReward) external onlyOwner {
         rewardConfigs[activityType] = PointRewardConfig(referrerReward, refereeReward);
@@ -98,13 +109,19 @@ contract ReferralTracker is Initializable, UUPSUpgradeable {
         PointRewardConfig memory config = rewardConfigs[activityType];
         address referrer = referrers[user];
         if (referrer != address(0) && config.referrerReward != 0) {
+            int256 newPoints = totalPoints[referrer] + config.referrerReward;
+            if (newPoints > MAX_POINTS) newPoints = MAX_POINTS;
+            if (newPoints < MIN_POINTS) newPoints = MIN_POINTS;
             referralHistory[referrer].push(ReferralActivity(activityType, config.referrerReward, block.timestamp));
-            totalPoints[referrer] += config.referrerReward;
+            totalPoints[referrer] = newPoints;
             emit ReferralRecorded(referrer, activityType, config.referrerReward, block.timestamp);
         }
         if (config.refereeReward != 0) {
+            int256 newPoints = totalPoints[user] + config.refereeReward;
+            if (newPoints > MAX_POINTS) newPoints = MAX_POINTS;
+            if (newPoints < MIN_POINTS) newPoints = MIN_POINTS;
             referralHistory[user].push(ReferralActivity(activityType, config.refereeReward, block.timestamp));
-            totalPoints[user] += config.refereeReward;
+            totalPoints[user] = newPoints;
             emit ReferralRecorded(user, activityType, config.refereeReward, block.timestamp);
         }
     }
@@ -118,7 +135,7 @@ contract ReferralTracker is Initializable, UUPSUpgradeable {
         emit RewardPoolFunded(msg.value, _ethPerPoint, currentEpoch);
     }
 
-    function claimReward() external {
+    function claimReward() external nonReentrant {
         require(ethPerPoint > 0, "No reward available");
         require(lastClaimedEpoch[msg.sender] < currentEpoch, "Already claimed this epoch");
         int256 points = totalPoints[msg.sender];
@@ -149,5 +166,22 @@ contract ReferralTracker is Initializable, UUPSUpgradeable {
         return referralHistory[user];
     }
 
-    uint256[50] private __gap;
+    /// @notice Emergency withdraw ETH stuck in contract
+    function emergencyWithdrawETH(address to, uint256 amount) external onlyOwner {
+        require(to != address(0), "Invalid address");
+        require(address(this).balance >= amount, "Insufficient balance");
+        (bool success, ) = payable(to).call{value: amount}("");
+        require(success, "Transfer failed");
+    }
+
+    uint256 private _reentrancyStatus;
+
+    modifier nonReentrant() {
+        require(_reentrancyStatus != ENTERED, "ReentrancyGuard: reentrant call");
+        _reentrancyStatus = ENTERED;
+        _;
+        _reentrancyStatus = NOT_ENTERED;
+    }
+
+    uint256[49] private __gap;
 }

@@ -64,9 +64,21 @@ contract LiquidityProvider is Initializable, UUPSUpgradeable {
 
     function _authorizeUpgrade(address) internal override onlyOwnerGroup {}
 
+    function setOwnerGroup(address newOwnerGroup) external onlyOwnerGroup {
+        require(newOwnerGroup != address(0), "Invalid");
+        _ownerGroupContract = IOwnerGroupContract(newOwnerGroup);
+    }
+
     function setLaunchPad(address _launchPad) external onlyOwnerGroup {
         require(_launchPad != address(0), "Invalid address");
         launchPad = _launchPad;
+    }
+
+    function setRouter(address _router) external onlyOwnerGroup {
+        require(_router != address(0), "Invalid router");
+        router = IUniswapV2Router02(_router);
+        factory = router.factory();
+        WETH = router.WETH();
     }
 
     function setSlippageTolerance(uint256 _tolerance) external onlyOwnerGroup {
@@ -126,6 +138,23 @@ contract LiquidityProvider is Initializable, UUPSUpgradeable {
     function getGraduatedTokenCount() external view returns (uint256) { return graduatedTokens.length; }
     function getGraduatedTokens() external view returns (address[] memory) { return graduatedTokens; }
     function getGraduationInfo(address token) external view returns (GraduationInfo memory) { return graduationInfo[token]; }
+
+    /// @notice Emergency withdraw ETH stuck in contract
+    function emergencyWithdrawETH(address to, uint256 amount) external onlyOwnerGroup {
+        require(to != address(0), "Invalid address");
+        require(address(this).balance >= amount, "Insufficient balance");
+        (bool success, ) = payable(to).call{value: amount}("");
+        require(success, "Transfer failed");
+    }
+
+    /// @notice Emergency withdraw ERC20 tokens stuck in contract
+    function emergencyWithdrawToken(address token, address to, uint256 amount) external onlyOwnerGroup {
+        require(to != address(0), "Invalid address");
+        require(token != address(0), "Invalid token");
+        uint256 bal = IERC20(token).balanceOf(address(this));
+        require(bal >= amount, "Insufficient balance");
+        IERC20(token).transfer(to, amount);
+    }
 
     receive() external payable {}
 

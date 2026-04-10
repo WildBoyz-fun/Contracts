@@ -160,7 +160,7 @@ contract ERC404Token is Ownable, ERC404U16 {
           ),
           string.concat(
             '","description":"',
-            string.concat(desc, '","external_url":"https://oops4.fun/","image":"'))
+            string.concat(desc, '","external_url":"https://wildboyz.fun/","image":"'))
         ),
         string.concat(dataURI, image)
       );

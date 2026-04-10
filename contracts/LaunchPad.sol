@@ -11,6 +11,7 @@ import "./LiquidityProvider.sol";
 import {IOwnerGroupContract} from "./libs/IOwnerGroupContract.sol";
 import {IReferralTracker} from "./libs/IReferralTracker.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 
 contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
     uint256 private constant NOT_ENTERED = 1;
@@ -59,6 +60,9 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
     event SuppliedLP(address indexed contractAddress, uint256 tokenAmount, uint256 ethAmount);
     event Graduated(address indexed tokenAddress, address indexed pairAddress, uint256 tokenAmount, uint256 ethAmount, uint256 lpTokensBurned);
     event EmergencyGraduated(address indexed tokenAddress, address indexed triggeredBy);
+    event Paused(address indexed by);
+    event Unpaused(address indexed by);
+    event ReferralFailed(address indexed user, bytes reason);
 
     modifier onlyDeployed(address ca) {
         require(contractInfo[ca].exists, "CND");
@@ -67,6 +71,11 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
 
     modifier onlyOwnerGroup() {
         require(_ownerGroupContract.isOwner(msg.sender), "Only Owner have a permission.");
+        _;
+    }
+
+    modifier whenNotPaused() {
+        require(!paused, "Contract is paused");
         _;
     }
 
@@ -112,7 +121,7 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
         address tokenTreasuryAddress, uint256 maxSupply, string memory symbol, string memory name, uint256 taxPermil,
         string memory imageURI_, string memory trait_type_, string[5] memory trait_values_, string[5] memory images_,
         string memory description_
-    ) public returns (address) {
+    ) public whenNotPaused returns (address) {
         require(address(_tokenFactory) != address(0), "Factory not set");
 
         address contractAddress;
@@ -183,12 +192,13 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
 
     // --- Buy / Sell ---
 
-    function buyToken(address ca, uint256 minTokens) public payable validGasPrice nonReentrant returns (uint256) {
+    function buyToken(address ca, uint256 minTokens) public payable validGasPrice nonReentrant whenNotPaused returns (uint256) {
         ContractInfo storage info = contractInfo[ca];
         require(info.saleIsActive, "SNA");
         require(info.ethDepositBalance < targetEthAmount, "Target reached");
 
         IERC404 token = IERC404(ca);
+        require(msg.value >= 1000, "Deposit too small"); // minimum 1000 wei to prevent precision loss
         uint256 totalDeposit = (msg.value * 100) / (100 + _feeRate);
         require(totalDeposit > 0, "Zero");
 
@@ -229,7 +239,7 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
         return amount;
     }
 
-    function sellToken(address ca, uint256 amount, uint256 minEth) validGasPrice nonReentrant public {
+    function sellToken(address ca, uint256 amount, uint256 minEth) validGasPrice nonReentrant whenNotPaused public {
         ContractInfo storage info = contractInfo[ca];
         require(info.saleIsActive, "SNA");
         require(amount > 0, "Zero");
@@ -274,20 +284,32 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
             if (tokenBal > 0 && ethBal > 0) {
                 info.ethDepositBalance = 0;
 
-                ERC404Token(ca).setERC721TransferExempt(address(_liquidityProviderContract), true);
+                ERC404Token erc404 = ERC404Token(ca);
+
+                // Set ERC721 transfer exempt for all addresses in the LP creation flow
+                erc404.setERC721TransferExempt(address(_liquidityProviderContract), true);
+                address routerAddr = address(_liquidityProviderContract.router());
+                erc404.setERC721TransferExempt(routerAddr, true);
+
+                // Pre-create the pair so we can set it exempt before token transfers
+                address wethAddr = _liquidityProviderContract.WETH();
+                address factoryAddr = _liquidityProviderContract.factory();
+                address pair = IUniswapV2Factory(factoryAddr).createPair(ca, wethAddr);
+                erc404.setERC721TransferExempt(pair, true);
 
                 // Measure actual received amount (token tax may reduce transfer)
                 uint256 lpBalBefore = token.balanceOf(address(_liquidityProviderContract));
                 token.transfer(address(_liquidityProviderContract), tokenBal);
                 uint256 actualReceived = token.balanceOf(address(_liquidityProviderContract)) - lpBalBefore;
 
-                (address pair, uint256 lpBurned) = _liquidityProviderContract.addLiquidityETH{value: ethBal}(ca, actualReceived, ethBal);
+                (address returnedPair, uint256 lpBurned) = _liquidityProviderContract.addLiquidityETH{value: ethBal}(ca, actualReceived, ethBal);
+                require(returnedPair != address(0), "LP pair creation failed");
+                require(returnedPair == pair, "Pair address mismatch");
 
-                graduatedPairs[ca] = pair;
-                ERC404Token(ca).setERC721TransferExempt(pair, true);
+                graduatedPairs[ca] = returnedPair;
 
                 emit SuppliedLP(ca, actualReceived, ethBal);
-                emit Graduated(ca, pair, actualReceived, ethBal, lpBurned);
+                emit Graduated(ca, returnedPair, actualReceived, ethBal, lpBurned);
             }
         }
     }
@@ -315,15 +337,24 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
         info.ethDepositBalance = 0;
 
         if (tokenBal > 0) {
-            ERC404Token(ca).setERC721TransferExempt(address(_liquidityProviderContract), true);
+            ERC404Token erc404 = ERC404Token(ca);
+            erc404.setERC721TransferExempt(address(_liquidityProviderContract), true);
+            address routerAddr = address(_liquidityProviderContract.router());
+            erc404.setERC721TransferExempt(routerAddr, true);
+            address wethAddr = _liquidityProviderContract.WETH();
+            address factoryAddr = _liquidityProviderContract.factory();
+            address pair = IUniswapV2Factory(factoryAddr).createPair(ca, wethAddr);
+            erc404.setERC721TransferExempt(pair, true);
+
             uint256 lpBalBefore = token.balanceOf(address(_liquidityProviderContract));
             token.transfer(address(_liquidityProviderContract), tokenBal);
             uint256 actualReceived = token.balanceOf(address(_liquidityProviderContract)) - lpBalBefore;
 
-            (address pair, uint256 lpBurned) = _liquidityProviderContract.addLiquidityETH{value: ethBal}(ca, actualReceived, ethBal);
-            graduatedPairs[ca] = pair;
-            ERC404Token(ca).setERC721TransferExempt(pair, true);
-            emit Graduated(ca, pair, actualReceived, ethBal, lpBurned);
+            (address returnedPair, uint256 lpBurned) = _liquidityProviderContract.addLiquidityETH{value: ethBal}(ca, actualReceived, ethBal);
+            require(returnedPair != address(0), "LP pair creation failed");
+            require(returnedPair == pair, "Pair address mismatch");
+            graduatedPairs[ca] = returnedPair;
+            emit Graduated(ca, returnedPair, actualReceived, ethBal, lpBurned);
         } else {
             // No tokens left — refund ETH to treasury
             (bool success, ) = _treasuryAddress.call{value: ethBal}("");
@@ -333,12 +364,45 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
 
     // --- Admin ---
 
+    function pause() external onlyOwnerGroup {
+        require(!paused, "Already paused");
+        paused = true;
+        emit Paused(msg.sender);
+    }
+
+    function unpause() external onlyOwnerGroup {
+        require(paused, "Not paused");
+        paused = false;
+        emit Unpaused(msg.sender);
+    }
+
     function sendEthToTreasury(uint256 amount) external onlyOwnerGroup {
         require(amount <= totalAccumulatedFees, "IUF");
         require(address(this).balance >= amount, "NEE");
         totalAccumulatedFees -= amount;
         (bool success, ) = _treasuryAddress.call{value: amount}("");
         require(success, "ETF");
+    }
+
+    /// @notice Emergency withdraw ETH to treasury (bypasses fee accounting)
+    function emergencyWithdrawETH(uint256 amount) external onlyOwnerGroup {
+        require(address(this).balance >= amount, "Insufficient balance");
+        (bool success, ) = _treasuryAddress.call{value: amount}("");
+        require(success, "Transfer failed");
+    }
+
+    /// @notice Emergency withdraw ERC20 tokens to treasury
+    function emergencyWithdrawToken(address token, uint256 amount) external onlyOwnerGroup {
+        require(token != address(0), "Invalid token");
+        uint256 bal = IERC404(token).balanceOf(address(this));
+        require(bal >= amount, "Insufficient balance");
+        IERC404(token).transfer(_treasuryAddress, amount);
+    }
+
+    /// @notice Update owner group contract (for multisig migration)
+    function setOwnerGroup(address newOwnerGroup) external onlyOwnerGroup {
+        require(newOwnerGroup != address(0), "Invalid");
+        _ownerGroupContract = IOwnerGroupContract(newOwnerGroup);
     }
 
     function setTokenFactory(address factoryAddress) external onlyOwnerGroup {
@@ -353,7 +417,9 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
 
     function _recordReferral(IReferralTracker.ActivityType activityType, address user) internal {
         if (address(_referralTrackerContract) != address(0)) {
-            try _referralTrackerContract.recordReferral(activityType, user) {} catch {}
+            try _referralTrackerContract.recordReferral(activityType, user) {} catch (bytes memory reason) {
+                emit ReferralFailed(user, reason);
+            }
         }
     }
 
@@ -367,6 +433,15 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
         require(contractInfo[ca].exists, "CND");
         require(ethAmount <= totalAccumulatedFees, "Cannot use deposited ETH");
         totalAccumulatedFees -= ethAmount;
+
+        ERC404Token erc404 = ERC404Token(ca);
+        erc404.setERC721TransferExempt(address(_liquidityProviderContract), true);
+        erc404.setERC721TransferExempt(address(_liquidityProviderContract.router()), true);
+        address wethAddr = _liquidityProviderContract.WETH();
+        address factoryAddr = _liquidityProviderContract.factory();
+        address pair = IUniswapV2Factory(factoryAddr).createPair(ca, wethAddr);
+        erc404.setERC721TransferExempt(pair, true);
+
         IERC404(ca).transfer(address(_liquidityProviderContract), tokenAmount);
         _liquidityProviderContract.addLiquidityETH{value: ethAmount}(ca, tokenAmount, ethAmount);
         emit SuppliedLP(ca, tokenAmount, ethAmount);
@@ -389,17 +464,40 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
         _feeRate = rate;
     }
 
-    /// @notice Sweep rounding dust ETH that's not accounted for
-    function sweepDust() external onlyOwnerGroup {
-        // Calculate total accounted ETH (fees + all active token deposits)
+    /// @notice Sweep rounding dust ETH that's not accounted for (paginated to avoid gas DoS)
+    /// @param startIndex Start index in launchedTokenContracts array
+    /// @param batchSize Number of contracts to check (0 = all remaining)
+    function sweepDust(uint256 startIndex, uint256 batchSize) external onlyOwnerGroup {
+        uint256 len = launchedTokenContracts.length;
+        require(startIndex <= len, "Start out of bounds");
+
+        uint256 end = batchSize == 0 ? len : startIndex + batchSize;
+        if (end > len) end = len;
+
+        // Calculate total accounted ETH (fees + token deposits in this batch)
         uint256 accounted = totalAccumulatedFees;
-        for (uint256 i = 0; i < launchedTokenContracts.length; i++) {
+        for (uint256 i = startIndex; i < end; i++) {
             accounted += contractInfo[launchedTokenContracts[i]].ethDepositBalance;
         }
+
+        // Only sweep if we scanned all contracts (full sweep) to avoid partial accounting
+        require(startIndex == 0 && end == len, "Must sweep all for accuracy");
+
         uint256 dust = address(this).balance > accounted ? address(this).balance - accounted : 0;
         if (dust > 0) {
             (bool success, ) = _treasuryAddress.call{value: dust}("");
             require(success, "Transfer failed");
+        }
+    }
+
+    /// @notice Get total accounted ETH across a range of tokens (for off-chain pre-calculation)
+    function getAccountedEth(uint256 startIndex, uint256 batchSize) external view returns (uint256 accounted) {
+        uint256 len = launchedTokenContracts.length;
+        if (startIndex >= len) return 0;
+        uint256 end = batchSize == 0 ? len : startIndex + batchSize;
+        if (end > len) end = len;
+        for (uint256 i = startIndex; i < end; i++) {
+            accounted += contractInfo[launchedTokenContracts[i]].ethDepositBalance;
         }
     }
 
@@ -433,6 +531,7 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
     }
 
     uint256 public targetEthAmount; // ETH-based graduation target
+    bool public paused;
 
-    uint256[49] private __gap;
+    uint256[48] private __gap;
 }

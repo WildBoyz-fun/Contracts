@@ -1,4 +1,4 @@
-// Production deployment script for oops4.fun LaunchPad
+// Production deployment script for WildBoyz.fun LaunchPad
 // Usage: npx hardhat ignition deploy ignition/modules/DeployContract.ts --network monad_testnet
 
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
