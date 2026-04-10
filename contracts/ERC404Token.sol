@@ -17,14 +17,12 @@ contract ERC404Token is Ownable, ERC404U16 {
   string public baseTokenURI;
   string[5] private images;
   string[6] private trait_values;
+  string public description;
 
-  /// @dev Minimal constructor for implementation deployment only.
-  ///      Clones skip the constructor entirely — all state is set via initialize().
   constructor() ERC404U16("", "", 24) Ownable(msg.sender) {
-    _initialized = true; // prevent initialize() on implementation
+    _initialized = true;
   }
 
-  /// @notice One-time initializer called after clone creation.
   function initialize(
     string memory name_,
     string memory symbol_,
@@ -41,22 +39,14 @@ contract ERC404Token is Ownable, ERC404U16 {
     if (_initialized) revert AlreadyInitialized();
     _initialized = true;
 
-    // ERC404U16 fields (storage, not immutable)
     name = name_;
     symbol = symbol_;
-
-    // Ownable
     _transferOwnership(initialOwner_);
-
-    // Mint
     _setERC721TransferExempt(initialMintRecipient_, true);
     _mintERC20(initialMintRecipient_, initialSupply_);
-
-    // Token config
     _tokenTreasury = tokenTreasury_;
     _taxPermil = taxPermil_;
 
-    // Metadata (IPFS URLs)
     dataURI = imageURI_;
     trait_values = [
       trait_values_[0],
@@ -73,15 +63,16 @@ contract ERC404Token is Ownable, ERC404U16 {
       images_[4]];
   }
 
-  function setERC721TransferExempt(
-    address account_,
-    bool value_
-  ) external onlyOwner {
+  /// @notice Set token description (callable by owner, e.g. LaunchPad)
+  function setDescription(string memory description_) external onlyOwner {
+    description = description_;
+  }
+
+  function setERC721TransferExempt(address account_, bool value_) external onlyOwner {
     _setERC721TransferExempt(account_, value_);
   }
 
   function setTokenURI(string memory tokenURI_) public onlyOwner {
-    // token file only. (not json type and rarity values)
     baseTokenURI = tokenURI_;
   }
 
@@ -95,7 +86,6 @@ contract ERC404Token is Ownable, ERC404U16 {
     string memory trait_value3_, string memory trait_value4_,
     string memory trait_value5_
   ) public onlyOwner {
-    // Color : Green Blue Purple Orange Red
     trait_values[5] = trait_type_;
     trait_values[0] = trait_value1_;
     trait_values[1] = trait_value2_;
@@ -116,7 +106,6 @@ contract ERC404Token is Ownable, ERC404U16 {
     images[4] = img5_;
   }
 
-  /// @dev Always recompute for clone compatibility (clone address != implementation address).
   function DOMAIN_SEPARATOR() public view override returns (bytes32) {
     return _computeDomainSeparator();
   }
@@ -153,6 +142,11 @@ contract ERC404Token is Ownable, ERC404U16 {
         color = trait_values[4];
       }
 
+      // Use on-chain description if set, otherwise default
+      string memory desc = bytes(description).length > 0
+        ? description
+        : "An ERC-404 token on WildBoyz.fun with 5 rarity tiers.";
+
       string memory jsonPreImage = string.concat(
         string.concat(
           string.concat(
@@ -165,8 +159,8 @@ contract ERC404Token is Ownable, ERC404U16 {
             )
           ),
           string.concat(
-            '","description":"A collection of 1,000 Replicants enabled by ERC404, an experimental token standard.",',
-            '"external_url":"https://oops4.fun/","image":"')
+            '","description":"',
+            string.concat(desc, '","external_url":"https://oops4.fun/","image":"'))
         ),
         string.concat(dataURI, image)
       );
@@ -198,9 +192,7 @@ contract ERC404Token is Ownable, ERC404U16 {
       uint256 value_
   ) internal returns (uint256) {
     uint256 fee = value_ * _taxPermil / 1000;
-
     _transferERC20WithERC721(from_, _tokenTreasury, fee);
-
     return value_ - fee;
   }
 
@@ -209,42 +201,21 @@ contract ERC404Token is Ownable, ERC404U16 {
     address to_,
     uint256 value_
   ) public virtual override returns (bool) {
-    // Prevent transferring tokens from 0x0.
-    if (from_ == address(0)) {
-      revert InvalidSender();
-    }
+    if (from_ == address(0)) { revert InvalidSender(); }
+    if (to_ == address(0)) { revert InvalidRecipient(); }
 
-    // Prevent burning tokens to 0x0.
-    if (to_ == address(0)) {
-      revert InvalidRecipient();
-    }
-
-    // Intention is to transfer as ERC-20 token (value).
     uint256 allowed = allowance[from_][msg.sender];
-
-    // Check that the operator has sufficient allowance.
     if (allowed != type(uint256).max) {
       allowance[from_][msg.sender] = allowed - value_;
     }
 
     value_ = ercTransferFromWithFee(from_, value_);
-
-    // Transferring ERC-20s directly requires the _transfer function.
-    // Handles ERC-721 exemptions internally.
     return _transferERC20WithERC721(from_, to_, value_);
   }
 
   function transfer(address to_, uint256 value_) public virtual override returns (bool) {
-    // Prevent burning tokens to 0x0.
-    if (to_ == address(0)) {
-      revert InvalidRecipient();
-    }
-
+    if (to_ == address(0)) { revert InvalidRecipient(); }
     value_ = ercTransferFromWithFee(msg.sender, value_);
-
-    // Transferring ERC-20s directly requires the _transfer function.
-    // Handles ERC-721 exemptions internally.
     return _transferERC20WithERC721(msg.sender, to_, value_);
   }
-
 }

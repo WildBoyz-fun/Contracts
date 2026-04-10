@@ -331,6 +331,12 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
         return true;
     }
 
+    /// @notice Allow token deployer to set description on their token
+    function setTokenDescription(address ca, string memory description_) external onlyDeployed(ca) {
+        require(contractInfo[ca].deployedBy == msg.sender, "Only deployer");
+        ERC404Token(ca).setDescription(description_);
+    }
+
     // --- Admin View Helpers ---
 
     function getTokenFactory() external view returns (address) {
