@@ -63,6 +63,8 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
     event Paused(address indexed by);
     event Unpaused(address indexed by);
     event ReferralFailed(address indexed user, bytes reason);
+    event RefundPending(address indexed user, uint256 amount);
+    event RefundClaimed(address indexed user, uint256 amount);
 
     modifier onlyDeployed(address ca) {
         require(contractInfo[ca].exists, "CND");
@@ -220,10 +222,14 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
         // Transfer tokens
         require(token.transfer(msg.sender, amount), "Transfer failed");
 
-        // Refund excess ETH if deposit was capped
+        // Refund excess ETH if deposit was capped (pull pattern to prevent DOS)
         if (msg.value > actualCost) {
-            (bool refundSuccess, ) = payable(msg.sender).call{value: msg.value - actualCost}("");
-            require(refundSuccess, "Refund failed");
+            uint256 refundAmount = msg.value - actualCost;
+            (bool refundSuccess, ) = payable(msg.sender).call{value: refundAmount}("");
+            if (!refundSuccess) {
+                pendingRefunds[msg.sender] += refundAmount;
+                emit RefundPending(msg.sender, refundAmount);
+            }
         }
 
         uint256 currentPrice = _bondingCurveContract.calculatePurchaseBalance(info.totalSupply, info.ethDepositBalance, 1e18);
@@ -282,8 +288,6 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
             uint256 tokenBal = token.balanceOf(address(this));
 
             if (tokenBal > 0 && ethBal > 0) {
-                info.ethDepositBalance = 0;
-
                 ERC404Token erc404 = ERC404Token(ca);
 
                 // Set ERC721 transfer exempt for all addresses in the LP creation flow
@@ -291,10 +295,13 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
                 address routerAddr = address(_liquidityProviderContract.router());
                 erc404.setERC721TransferExempt(routerAddr, true);
 
-                // Pre-create the pair so we can set it exempt before token transfers
+                // Get or create pair so we can set it exempt before token transfers
                 address wethAddr = _liquidityProviderContract.WETH();
                 address factoryAddr = _liquidityProviderContract.factory();
-                address pair = IUniswapV2Factory(factoryAddr).createPair(ca, wethAddr);
+                address pair = IUniswapV2Factory(factoryAddr).getPair(ca, wethAddr);
+                if (pair == address(0)) {
+                    pair = IUniswapV2Factory(factoryAddr).createPair(ca, wethAddr);
+                }
                 erc404.setERC721TransferExempt(pair, true);
 
                 // Measure actual received amount (token tax may reduce transfer)
@@ -306,6 +313,8 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
                 require(returnedPair != address(0), "LP pair creation failed");
                 require(returnedPair == pair, "Pair address mismatch");
 
+                // Zero balance AFTER successful LP creation (atomicity)
+                info.ethDepositBalance = 0;
                 graduatedPairs[ca] = returnedPair;
 
                 emit SuppliedLP(ca, actualReceived, ethBal);
@@ -334,16 +343,17 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
         IERC404 token = IERC404(ca);
         uint256 ethBal = info.ethDepositBalance;
         uint256 tokenBal = token.balanceOf(address(this));
-        info.ethDepositBalance = 0;
 
         if (tokenBal > 0) {
             ERC404Token erc404 = ERC404Token(ca);
             erc404.setERC721TransferExempt(address(_liquidityProviderContract), true);
-            address routerAddr = address(_liquidityProviderContract.router());
-            erc404.setERC721TransferExempt(routerAddr, true);
+            erc404.setERC721TransferExempt(address(_liquidityProviderContract.router()), true);
             address wethAddr = _liquidityProviderContract.WETH();
             address factoryAddr = _liquidityProviderContract.factory();
-            address pair = IUniswapV2Factory(factoryAddr).createPair(ca, wethAddr);
+            address pair = IUniswapV2Factory(factoryAddr).getPair(ca, wethAddr);
+            if (pair == address(0)) {
+                pair = IUniswapV2Factory(factoryAddr).createPair(ca, wethAddr);
+            }
             erc404.setERC721TransferExempt(pair, true);
 
             uint256 lpBalBefore = token.balanceOf(address(_liquidityProviderContract));
@@ -353,9 +363,11 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
             (address returnedPair, uint256 lpBurned) = _liquidityProviderContract.addLiquidityETH{value: ethBal}(ca, actualReceived, ethBal);
             require(returnedPair != address(0), "LP pair creation failed");
             require(returnedPair == pair, "Pair address mismatch");
+            info.ethDepositBalance = 0;
             graduatedPairs[ca] = returnedPair;
             emit Graduated(ca, returnedPair, actualReceived, ethBal, lpBurned);
         } else {
+            info.ethDepositBalance = 0;
             // No tokens left — refund ETH to treasury
             (bool success, ) = _treasuryAddress.call{value: ethBal}("");
             require(success, "ETH transfer failed");
@@ -532,6 +544,17 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
 
     uint256 public targetEthAmount; // ETH-based graduation target
     bool public paused;
+    mapping(address => uint256) public pendingRefunds;
 
-    uint256[48] private __gap;
+    /// @notice Claim pending refund that failed during buyToken
+    function claimRefund() external nonReentrant {
+        uint256 amount = pendingRefunds[msg.sender];
+        require(amount > 0, "No pending refund");
+        pendingRefunds[msg.sender] = 0;
+        (bool success, ) = payable(msg.sender).call{value: amount}("");
+        require(success, "Refund transfer failed");
+        emit RefundClaimed(msg.sender, amount);
+    }
+
+    uint256[47] private __gap;
 }

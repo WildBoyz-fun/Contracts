@@ -168,6 +168,7 @@ contract OwnerGroupContract is IOwnerGroupContract {
     function _executeProposal(uint256 proposalId) internal {
         Proposal storage p = proposals[proposalId];
         require(!p.executed, "Already executed");
+        require(block.timestamp <= p.createdAt + PROPOSAL_EXPIRY, "Proposal expired");
         require(p.confirmCount >= requiredConfirmations(), "Not enough confirmations");
 
         p.executed = true;
