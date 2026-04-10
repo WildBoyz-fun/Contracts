@@ -2254,6 +2254,337 @@
           ]
         }
       }
+    },
+    "549893a2afa9d789e57df84802b63d7631cc2bbc99c17f563f7510d2521d0aea": {
+      "address": "0x7eE88171d22161499f8Eb67Cb9d744A59537418C",
+      "txHash": "0x25448a2c49ac97957cd9a49304af1bd324a743042289bd29946ac648ceeef236",
+      "layout": {
+        "solcVersion": "0.8.28",
+        "storage": [
+          {
+            "label": "maxGasPrice",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint256",
+            "contract": "MaxGasPriceUpgradeable",
+            "src": "contracts/libs/MaxGasPriceUpgradeable.sol:8"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "MaxGasPriceUpgradeable",
+            "src": "contracts/libs/MaxGasPriceUpgradeable.sol:25"
+          },
+          {
+            "label": "_reentrancyStatus",
+            "offset": 0,
+            "slot": "50",
+            "type": "t_uint256",
+            "contract": "LaunchPad",
+            "src": "contracts/LaunchPad.sol:18"
+          },
+          {
+            "label": "_bondingCurveContract",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_contract(BondingCurve)9020",
+            "contract": "LaunchPad",
+            "src": "contracts/LaunchPad.sol:26"
+          },
+          {
+            "label": "_ownerGroupContract",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_contract(IOwnerGroupContract)14892",
+            "contract": "LaunchPad",
+            "src": "contracts/LaunchPad.sol:27"
+          },
+          {
+            "label": "_liquidityProviderContract",
+            "offset": 0,
+            "slot": "53",
+            "type": "t_contract(LiquidityProvider)11845",
+            "contract": "LaunchPad",
+            "src": "contracts/LaunchPad.sol:28"
+          },
+          {
+            "label": "_referralTrackerContract",
+            "offset": 0,
+            "slot": "54",
+            "type": "t_contract(IReferralTracker)14954",
+            "contract": "LaunchPad",
+            "src": "contracts/LaunchPad.sol:29"
+          },
+          {
+            "label": "_tokenFactory",
+            "offset": 0,
+            "slot": "55",
+            "type": "t_contract(ITokenFactory)11889",
+            "contract": "LaunchPad",
+            "src": "contracts/LaunchPad.sol:30"
+          },
+          {
+            "label": "_treasuryAddress",
+            "offset": 0,
+            "slot": "56",
+            "type": "t_address",
+            "contract": "LaunchPad",
+            "src": "contracts/LaunchPad.sol:42"
+          },
+          {
+            "label": "totalContractCount",
+            "offset": 0,
+            "slot": "57",
+            "type": "t_uint256",
+            "contract": "LaunchPad",
+            "src": "contracts/LaunchPad.sol:43"
+          },
+          {
+            "label": "launchedTokenContracts",
+            "offset": 0,
+            "slot": "58",
+            "type": "t_array(t_address)dyn_storage",
+            "contract": "LaunchPad",
+            "src": "contracts/LaunchPad.sol:44"
+          },
+          {
+            "label": "userDeployedContracts",
+            "offset": 0,
+            "slot": "59",
+            "type": "t_mapping(t_address,t_array(t_address)dyn_storage)",
+            "contract": "LaunchPad",
+            "src": "contracts/LaunchPad.sol:45"
+          },
+          {
+            "label": "targetFundRasingAmount",
+            "offset": 0,
+            "slot": "60",
+            "type": "t_uint256",
+            "contract": "LaunchPad",
+            "src": "contracts/LaunchPad.sol:47"
+          },
+          {
+            "label": "_feeRate",
+            "offset": 0,
+            "slot": "61",
+            "type": "t_uint8",
+            "contract": "LaunchPad",
+            "src": "contracts/LaunchPad.sol:48"
+          },
+          {
+            "label": "totalAccumulatedFees",
+            "offset": 0,
+            "slot": "62",
+            "type": "t_uint256",
+            "contract": "LaunchPad",
+            "src": "contracts/LaunchPad.sol:49"
+          },
+          {
+            "label": "contractInfo",
+            "offset": 0,
+            "slot": "63",
+            "type": "t_mapping(t_address,t_struct(ContractInfo)9824_storage)",
+            "contract": "LaunchPad",
+            "src": "contracts/LaunchPad.sol:51"
+          },
+          {
+            "label": "graduatedPairs",
+            "offset": 0,
+            "slot": "64",
+            "type": "t_mapping(t_address,t_address)",
+            "contract": "LaunchPad",
+            "src": "contracts/LaunchPad.sol:52"
+          },
+          {
+            "label": "targetEthAmount",
+            "offset": 0,
+            "slot": "65",
+            "type": "t_uint256",
+            "contract": "LaunchPad",
+            "src": "contracts/LaunchPad.sol:384"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "66",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "LaunchPad",
+            "src": "contracts/LaunchPad.sol:386"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)435_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_address)dyn_storage": {
+            "label": "address[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_contract(BondingCurve)9020": {
+            "label": "contract BondingCurve",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IOwnerGroupContract)14892": {
+            "label": "contract IOwnerGroupContract",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IReferralTracker)14954": {
+            "label": "contract IReferralTracker",
+            "numberOfBytes": "20"
+          },
+          "t_contract(ITokenFactory)11889": {
+            "label": "contract ITokenFactory",
+            "numberOfBytes": "20"
+          },
+          "t_contract(LiquidityProvider)11845": {
+            "label": "contract LiquidityProvider",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_address)": {
+            "label": "mapping(address => address)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_array(t_address)dyn_storage)": {
+            "label": "mapping(address => address[])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_struct(ContractInfo)9824_storage)": {
+            "label": "mapping(address => struct LaunchPad.ContractInfo)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(ContractInfo)9824_storage": {
+            "label": "struct LaunchPad.ContractInfo",
+            "members": [
+              {
+                "label": "deployedBy",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "saleIsActive",
+                "type": "t_bool",
+                "offset": 20,
+                "slot": "0"
+              },
+              {
+                "label": "isGraduated",
+                "type": "t_bool",
+                "offset": 21,
+                "slot": "0"
+              },
+              {
+                "label": "maxSupply",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "totalSupply",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "ethDepositBalance",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "exists",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "4"
+              }
+            ],
+            "numberOfBytes": "160"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
     }
   }
 }

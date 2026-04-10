@@ -29,6 +29,9 @@ describe("LaunchPad", function () {
         await launchPad.connect(owner).setTokenFactory(await tokenFactory.getAddress());
         await tokenFactory.connect(owner).setLaunchPad(await launchPad.getAddress());
 
+        // Set ETH-based graduation target
+        await launchPad.connect(owner).setTargetEthAmount(ethers.parseEther("100"));
+
         params = new TokenParams();
         return { launchPad, params };
     }

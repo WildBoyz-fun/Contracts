@@ -58,6 +58,9 @@ describe("LaunchPad Auto LP & Graduation", function () {
         await launchPad.connect(owner).setTokenFactory(await tokenFactory.getAddress());
         await tokenFactory.connect(owner).setLaunchPad(await launchPad.getAddress());
 
+        // Set ETH-based graduation target (low for testing)
+        await launchPad.connect(owner).setTargetEthAmount(ethers.parseEther("1"));
+
         params = new TokenParams();
         return { launchPad, liquidityProvider, router, factory, weth, ownerGroupContract, bondingCurve, params, owner, buyer };
     }

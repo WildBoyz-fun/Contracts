@@ -44,7 +44,7 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
     address[] public launchedTokenContracts;
     mapping(address => address[]) public userDeployedContracts;
 
-    uint256 public targetFundRasingAmount;
+    uint256 public targetFundRasingAmount; // legacy (token-based, kept for storage layout)
     uint8 public _feeRate;
     uint256 public totalAccumulatedFees;
 
@@ -91,7 +91,8 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
         _treasuryAddress = treasuryAddress;
         _bondingCurveContract = BondingCurve(bondingCurveContract);
         _ownerGroupContract = IOwnerGroupContract(ownerGroupContract);
-        targetFundRasingAmount = 800_000_000 * 10 ** 18;
+        targetFundRasingAmount = 800_000_000 * 10 ** 18; // legacy
+        targetEthAmount = 10 ether; // default: 10 ETH to graduate
         _feeRate = 1;
     }
 
@@ -185,29 +186,43 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
     function buyToken(address ca, uint256 minTokens) public payable validGasPrice nonReentrant returns (uint256) {
         ContractInfo storage info = contractInfo[ca];
         require(info.saleIsActive, "SNA");
-        require(info.totalSupply < targetFundRasingAmount, "TFR");
+        require(info.ethDepositBalance < targetEthAmount, "Target reached");
 
         IERC404 token = IERC404(ca);
-        uint256 deposit = (msg.value * 100) / (100 + _feeRate);
-        uint256 fee = msg.value - deposit;
-        require(deposit > 0, "Zero");
+        uint256 totalDeposit = (msg.value * 100) / (100 + _feeRate);
+        require(totalDeposit > 0, "Zero");
+
+        // Cap deposit so it doesn't exceed graduation target
+        uint256 remaining = targetEthAmount - info.ethDepositBalance;
+        uint256 deposit = totalDeposit > remaining ? remaining : totalDeposit;
+        uint256 fee = (deposit * _feeRate) / 100;
+        uint256 actualCost = deposit + fee;
 
         uint256 amount = _bondingCurveContract.calculatePurchaseReturn(info.totalSupply, info.ethDepositBalance, deposit);
         require(amount >= minTokens, "Slippage exceeded");
         require(token.balanceOf(address(this)) >= amount, "Insufficient");
 
+        // Effects
         totalAccumulatedFees += fee;
         info.totalSupply += amount;
         info.ethDepositBalance += deposit;
 
+        // Transfer tokens
         require(token.transfer(msg.sender, amount), "Transfer failed");
+
+        // Refund excess ETH if deposit was capped
+        if (msg.value > actualCost) {
+            (bool refundSuccess, ) = payable(msg.sender).call{value: msg.value - actualCost}("");
+            require(refundSuccess, "Refund failed");
+        }
 
         uint256 currentPrice = _bondingCurveContract.calculatePurchaseBalance(info.totalSupply, info.ethDepositBalance, 1e18);
         emit TokenPurchased(ca, msg.sender, amount, currentPrice);
 
         _recordReferral(IReferralTracker.ActivityType.TOKEN_BUY, msg.sender);
 
-        if (info.totalSupply >= targetFundRasingAmount) {
+        // Graduate when ETH target reached
+        if (info.ethDepositBalance >= targetEthAmount) {
             _graduateToken(ca, info);
         }
 
@@ -247,7 +262,7 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
     function _graduateToken(address ca, ContractInfo storage info) internal {
         info.saleIsActive = false;
         info.isGraduated = true;
-        emit SaleEnded(ca, info.totalSupply, targetFundRasingAmount);
+        emit SaleEnded(ca, info.ethDepositBalance, targetEthAmount);
 
         if (address(_liquidityProviderContract) != address(0)) {
             IERC404 token = IERC404(ca);
@@ -327,6 +342,11 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
         targetFundRasingAmount = amount;
     }
 
+    function setTargetEthAmount(uint256 amount) external onlyOwnerGroup {
+        require(amount > 0, "Must be > 0");
+        targetEthAmount = amount;
+    }
+
     function setFeeRate(uint8 rate) external onlyOwnerGroup {
         require(rate <= 10, "Max 10%");
         _feeRate = rate;
@@ -361,5 +381,7 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
         return _treasuryAddress;
     }
 
-    uint256[50] private __gap;
+    uint256 public targetEthAmount; // ETH-based graduation target
+
+    uint256[49] private __gap;
 }

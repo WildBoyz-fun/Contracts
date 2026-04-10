@@ -65,6 +65,9 @@ describe("Referral Integration with LaunchPad", function () {
         // Authorize LaunchPad to call ReferralTracker
         await referralTracker.connect(owner).setAuthorizedContract(await launchPad.getAddress(), true);
 
+        // Set ETH-based graduation target
+        await launchPad.connect(owner).setTargetEthAmount(ethers.parseEther("100"));
+
         params = new TokenParams();
         return { launchPad, referralTracker, ownerGroupContract, params, owner, buyer, referrer };
     }
@@ -149,6 +152,7 @@ describe("Referral Integration with LaunchPad", function () {
         await launchPadNoRef.waitForDeployment();
         await launchPadNoRef.connect(owner).setTokenFactory(await tf.getAddress());
         await tf.connect(owner).setLaunchPad(await launchPadNoRef.getAddress());
+        await launchPadNoRef.connect(owner).setTargetEthAmount(ethers.parseEther("100"));
 
         const contractAddress = await createToken(launchPadNoRef, params);
 
