@@ -109,6 +109,14 @@ contract TokenTreasury {
         emit Executed(_proposalId);
     }
 
+    /// @notice Emergency withdraw ETH by admin (bypasses DAO vote)
+    function emergencyWithdrawETH(address payable to, uint256 amount) external onlyAdmin {
+        require(to != address(0), "Invalid address");
+        require(address(this).balance >= amount, "Insufficient balance");
+        (bool success, ) = to.call{value: amount}("");
+        require(success, "Transfer failed");
+    }
+
     // Treasury 잔액 조회
     function getBalance() external view returns (uint) {
         return address(this).balance;

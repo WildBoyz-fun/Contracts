@@ -417,6 +417,11 @@ contract LaunchPad is MaxGasPriceUpgradeable, UUPSUpgradeable {
         _ownerGroupContract = IOwnerGroupContract(newOwnerGroup);
     }
 
+    function setTreasuryAddress(address newTreasury) external onlyOwnerGroup {
+        require(newTreasury != address(0), "Invalid");
+        _treasuryAddress = newTreasury;
+    }
+
     function setTokenFactory(address factoryAddress) external onlyOwnerGroup {
         require(factoryAddress != address(0), "Invalid");
         _tokenFactory = ITokenFactory(factoryAddress);
